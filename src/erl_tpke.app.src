@@ -1,0 +1,13 @@
+{application, erl_tpke,
+ [{description, "Erlang implementation of TPKE"},
+  {vsn, "0.1.0"},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+
+  {maintainers, ["Helium"]},
+  {licenses, ["Apache 2.0"]},
+  {links, [{"Github", "https://github.com/helium/erl_tpke"}]}
+ ]}.
