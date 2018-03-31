@@ -13,4 +13,4 @@
 -export([init/3]).
 
 init(PubKey, SecretKey, SecretKeyIndex) ->
-		#privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
+    #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
