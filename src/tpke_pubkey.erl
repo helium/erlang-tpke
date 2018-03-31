@@ -12,13 +12,10 @@
 -export_type([pubkey/0]).
 -export([f/2]).
 
--define(GROUP, erlang_pbc:group_new('SS512')).
--define(ELEMENT, erlang_pbc:element_new('Zr', ?GROUP)).
-
 f(Xval, Coefficients) ->
-	Zero = erlang_pbc:element_mul(erlang_pbc:element_random(?ELEMENT), 0),
+	Zero = erlang_pbc:element_set(hd(Coefficients), 0),
 	%% io:format("Zero: ~p~n", [erlang_pbc:element_to_string(Zero)]),
-	One = erlang_pbc:element_add(erlang_pbc:element_mul(erlang_pbc:element_random(?ELEMENT), 0), 1),
+	One = erlang_pbc:element_set(hd(Coefficients), 1),
 	%% io:format("One: ~p~n", [erlang_pbc:element_to_string(One)]),
 	f(Xval, Coefficients, Zero, One).
 
