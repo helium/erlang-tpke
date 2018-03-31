@@ -18,7 +18,7 @@ basic_test() ->
 	Foo = f(0, Coefficients),
 	io:format("Foo: ~p", [erlang_pbc:element_to_string(Foo)]),
 
-	?assert(false),
+	?assertEqual(erlang_pbc:element_to_string(Secret), erlang_pbc:element_to_string(Foo)),
 	ok.
 
 f(Xval, Coefficients) ->
