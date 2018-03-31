@@ -9,3 +9,8 @@
 -type privkey() :: #privkey{}.
 
 -export_type([privkey/0]).
+
+-export([init/3]).
+
+init(PubKey, SecretKey, SecretKeyIndex) ->
+		#privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
