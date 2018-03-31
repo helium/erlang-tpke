@@ -1,1 +1,4 @@
-[].
+[{<<"erlang_pbc">>,
+  {git,"https://github.com/helium/erlang_pbc.git",
+       {ref,"150dd99650394eebbdd30c0a942bc39ebfdc61e5"}},
+  0}].
