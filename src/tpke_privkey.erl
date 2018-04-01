@@ -10,7 +10,7 @@
 
 -export_type([privkey/0]).
 
--export([init/3, decrypt_share/2]).
+-export([init/3, decrypt_share/2, sign/2]).
 
 init(PubKey, SecretKey, SecretKeyIndex) ->
     #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
@@ -18,3 +18,6 @@ init(PubKey, SecretKey, SecretKeyIndex) ->
 decrypt_share(PrivKey, {U, V, W}) ->
     Share = erlang_pbc:element_pow(U, PrivKey#privkey.secret_key),
     {PrivKey#privkey.secret_key_index, Share}.
+
+sign(PrivKey, H) ->
+    {PrivKey#privkey.secret_key_index, erlang_pbc:element_pow(H, PrivKey#privkey.secret_key)}.

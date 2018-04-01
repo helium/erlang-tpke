@@ -4,6 +4,8 @@
 
 first_secret_equality_test() ->
     Group = erlang_pbc:group_new('SS512'),
+    %% TODO make this work over the MNT224 curve
+    %Group = erlang_pbc:group_new('MNT224'),
     Element = erlang_pbc:element_new('Zr', Group),
     %% change later
     Players = 10,
@@ -14,13 +16,15 @@ first_secret_equality_test() ->
     SKs = [ tpke_pubkey:f(N, Coefficients) || N <- lists:seq(1, Players)],
     ?assert(erlang_pbc:element_cmp(Secret, FirstSecret)),
 
-    G1 = erlang_pbc:element_new('G1', Group),
-    Hash = erlang_pbc:element_from_hash(G1, <<"geng1">>),
-    io:format("Hash: ~p~n", [erlang_pbc:element_to_string(Hash)]),
+    G1 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', Group), <<"geng1">>),
+    %G2 = G1,
+    G2 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', Group), <<"geng2">>),
+    io:format("G1: ~p~n", [erlang_pbc:element_to_string(G1)]),
+    io:format("G2: ~p~n", [erlang_pbc:element_to_string(G2)]),
 
-    VK = erlang_pbc:element_pow(Hash, Secret),
+    VK = erlang_pbc:element_pow(G2, Secret),
     io:format("VK: ~p~n", [erlang_pbc:element_to_string(VK)]),
-    VKs = [ erlang_pbc:element_pow(Hash, XX) || XX <- SKs],
+    VKs = [ erlang_pbc:element_pow(G2, XX) || XX <- SKs],
 
     PublicKey = tpke_pubkey:init(Players, K, VK, VKs),
     PrivateKeys = [tpke_privkey:init(PublicKey, SK, I) || {I, SK} <- enumerate(SKs)],
@@ -34,15 +38,25 @@ first_secret_equality_test() ->
     io:format("FirstSecret: ~p~n", [erlang_pbc:element_to_string(FirstSecret)]),
     ?assert(erlang_pbc:element_cmp(FirstSecret, SumBits)),
 
-    Message = crypto:hash(sha256, <<"my hovercraft is full of eels">>),
+    Message = crypto:hash(sha256, crypto:strong_rand_bytes(12)),
     CipherText = tpke_pubkey:encrypt(PublicKey, G1, Message),
+    ?assertNotEqual(Message, CipherText),
 
+    io:format("Message is ~p~n", [Message]),
     io:format("Ciphertext is ~p~n", [CipherText]),
     ?assert(tpke_pubkey:verify_ciphertext(PublicKey, G1, CipherText)),
 
     Shares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
     ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PublicKey, G1, Share, CipherText) || Share <- Shares])),
     ?assertEqual(Message, tpke_pubkey:combine_shares(PublicKey, CipherText, random_n(K, Shares))),
+
+
+    %% Test threshold signatures, too
+    MessageToSign = tpke_pubkey:hash_message(PublicKey, crypto:hash(sha256, crypto:strong_rand_bytes(12))),
+    Signatures = [ tpke_privkey:sign(PrivKey, MessageToSign) || PrivKey <- PrivateKeys],
+    io:format("Signatures ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Signatures]]),
+    Sig = tpke_pubkey:combine_signature_shares(PublicKey, random_n(K, Signatures)),
+    ?assert(tpke_pubkey:verify_signature(PublicKey, G2, Sig, MessageToSign)),
     ok.
 
 enumerate(List) ->
@@ -52,4 +66,4 @@ random_n(N, List) ->
     lists:sublist(shuffle(List), N).
 
 shuffle(List) ->
-    [X || {_,X} <- lists:sort([{random:uniform(), N} || N <- List])].
+    [X || {_,X} <- lists:sort([{rand:uniform(), N} || N <- List])].
