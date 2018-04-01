@@ -31,11 +31,18 @@ zero_reconstruction_test() ->
 dealer_test() ->
     dealer:start_link(),
     {ok, Group} = dealer:group(),
-    {ok, PubKey, _PrivateKeys} = dealer:deal(),
+    {ok, PubKey, PrivateKeys} = dealer:deal(),
+    {ok, K} = dealer:adversaries(),
     G1 = erlang_pbc:element_new('G1', Group),
     Message = crypto:hash(sha256, <<"my hovercraft is full of eels">>),
     CipherText = tpke_pubkey:encrypt(PubKey, G1, Message),
-    ?assert(tpke_pubkey:verify_ciphertext(PubKey, G1, CipherText)).
+    %% verify ciphertext
+    ?assert(tpke_pubkey:verify_ciphertext(PubKey, G1, CipherText)),
+    Shares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
+    %% verify share
+    ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G1, Share, CipherText) || Share <- Shares])),
+    %% verify combine_shares
+    ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, CipherText, random_n(K, Shares))).
 
 %% threshold_signatures_test() ->
 %%     dealer:start_link(),
@@ -53,9 +60,6 @@ dealer_test() ->
 %%     io:format("Ciphertext is ~p~n", [CipherText]),
 %%     ?assert(tpke_pubkey:verify_ciphertext(PubKey, G1, CipherText)),
 %% 
-%%     Shares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
-%%     ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G1, Share, CipherText) || Share <- Shares])),
-%%     ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, CipherText, random_n(K, Shares))),
 %% 
 %%     %% Test threshold signatures, too
 %%     MessageToSign = tpke_pubkey:hash_message(PubKey, crypto:hash(sha256, crypto:strong_rand_bytes(12))),
@@ -64,9 +68,10 @@ dealer_test() ->
 %%     Sig = tpke_pubkey:combine_signature_shares(PubKey, random_n(K, Signatures)),
 %%     ?assert(tpke_pubkey:verify_signature(PubKey, G2, Sig, MessageToSign)),
 %%     ok.
-%% 
-%% random_n(N, List) ->
-%%     lists:sublist(shuffle(List), N).
-%% 
-%% shuffle(List) ->
-%%     [X || {_,X} <- lists:sort([{rand:uniform(), N} || N <- List])].
+
+
+random_n(N, List) ->
+    lists:sublist(shuffle(List), N).
+
+shuffle(List) ->
+    [X || {_,X} <- lists:sort([{rand:uniform(), N} || N <- List])].
