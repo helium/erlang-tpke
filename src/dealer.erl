@@ -2,7 +2,7 @@
 
 -behavior(gen_server).
 
--export([start_link/0, group/0, deal/0]).
+-export([start_link/0, adversaries/0, group/0, deal/0]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(state, {
@@ -29,6 +29,10 @@ deal() ->
 group() ->
     gen_server:call(?MODULE, group).
 
+adversaries() ->
+    gen_server:call(?MODULE, adversaries).
+
+handle_call(adversaries, _From, #state{adversaries=Adversaries}=State) -> {reply, {ok, Adversaries}, State};
 handle_call(group, _From, #state{group=Group}=State) -> {reply, {ok, Group}, State};
 handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Players}=State) ->
     Element = erlang_pbc:element_new('Zr', Group),
