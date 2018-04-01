@@ -2,7 +2,7 @@
 
 -behavior(gen_server).
 
--export([start_link/0, adversaries/0, group/0, deal/0]).
+-export([start_link/0, start_link/3, adversaries/0, group/0, deal/0]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(state, {
@@ -14,13 +14,13 @@
          }).
 
 start_link() ->
-    start_link(10, 5).
+    start_link(10, 5, 'SS512').
 
-start_link(Players, Adversaries) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Players, Adversaries], []).
+start_link(Players, Adversaries, Curve) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Players, Adversaries, Curve], []).
 
-init([Players, Adversaries]) ->
-    Group = erlang_pbc:group_new('SS512'),
+init([Players, Adversaries, Curve]) ->
+    Group = erlang_pbc:group_new(Curve),
     {ok, #state{players=Players, adversaries=Adversaries, group=Group}}.
 
 deal() ->
@@ -39,13 +39,21 @@ handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Pl
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, Adversaries)],
     MasterSecret = hd(Coefficients),
     MasterSecretKeyShares = [tpke_pubkey:f(N, Coefficients) || N <- lists:seq(1, Players)],
-    G1 = erlang_pbc:element_new('G1', Group),
-    Hash = erlang_pbc:element_from_hash(G1, <<"geng1">>),
-    VerificationKey = erlang_pbc:element_pow(Hash, MasterSecret),
-    VerificationKeys = [erlang_pbc:element_pow(Hash, SecretKeyShare) || SecretKeyShare <- MasterSecretKeyShares],
+    G1 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', Group), <<"geng1">>),
+    case erlang_pbc:pairing_is_symmetric(Group) of
+        true ->
+            G2 = G1;
+        false ->
+            G2 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', Group), <<"geng2">>)
+    end,
+    %% pre-process them for faster exponents later
+    erlang_pbc:element_pp_init(G1),
+    erlang_pbc:element_pp_init(G2),
+    VerificationKey = erlang_pbc:element_pow(G2, MasterSecret),
+    VerificationKeys = [erlang_pbc:element_pow(G2, SecretKeyShare) || SecretKeyShare <- MasterSecretKeyShares],
     PublicKey = tpke_pubkey:init(Players, Adversaries, VerificationKey, VerificationKeys),
     PrivateKeys = [tpke_privkey:init(PublicKey, SKShare, Index) || {Index, SKShare} <- enumerate(MasterSecretKeyShares)],
-    {reply, {ok, PublicKey, PrivateKeys}, State#state{pubkey=PublicKey, privkeys=PrivateKeys}}.
+    {reply, {ok, G1, G2, PublicKey, PrivateKeys}, State#state{pubkey=PublicKey, privkeys=PrivateKeys}}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.

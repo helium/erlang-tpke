@@ -10,7 +10,7 @@
 -type pubkey() :: #pubkey{}.
 
 -export_type([pubkey/0]).
--export([f/2, init/4, lagrange/4, encrypt/3, verify_ciphertext/3, verify_share/4, combine_shares/3, hash_message/2, verify_signature/4, combine_signature_shares/2]).
+-export([f/2, init/4, lagrange/4, encrypt/3, verify_ciphertext/3, verify_share/4, combine_shares/3, hash_message/2, verify_signature/4, combine_signature_shares/2, verify_signature_share/4]).
 
 init(Players, K, VK, VKs) ->
     #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs}.
@@ -32,6 +32,11 @@ verify_share(PubKey, G2, {Index, Share}, {U, _V, _W}) ->
     Y_i = lists:nth(Index+1, PubKey#pubkey.verification_keys),
     erlang_pbc:element_cmp(erlang_pbc:element_pairing(Share, G2), erlang_pbc:element_pairing(U, Y_i)).
 
+verify_signature_share(PubKey, G2, {Index, Share}, H) ->
+    true = 0 =< Index andalso Index < PubKey#pubkey.players,
+    B = lists:nth(Index+1, PubKey#pubkey.verification_keys),
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(Share, G2), erlang_pbc:element_pairing(H, B)).
+
 verify_signature(PubKey, G2, Signature, H) ->
     A = erlang_pbc:element_pairing(Signature, G2),
     B = erlang_pbc:element_pairing(H, PubKey#pubkey.verification_key),
@@ -51,8 +56,8 @@ combine_shares(PubKey, {U, V, _W}, Shares) ->
 
     Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, One, Set, Index)) || {Index, Share} <- Shares],
     Res = lists:foldl(fun(E, Acc) ->
-                              erlang_pbc:element_mul(Acc, E)
-                      end, hd(Bleh), tl(Bleh)),
+                              erlang_pbc:element_mul(E, Acc)
+                      end, 1, Bleh),
     xor_bin(hashG(Res), V).
 
 combine_signature_shares(PubKey, Shares) ->
@@ -67,17 +72,19 @@ combine_signature_shares(PubKey, Shares) ->
     Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, One, Set, Index)) || {Index, Share} <- Shares],
     io:format("Bleh ~p~n", [[ erlang_pbc:element_to_string(S) || S <- Bleh]]),
     lists:foldl(fun(E, Acc) ->
-                              Next = erlang_pbc:element_mul(Acc, E),
+                              Next = erlang_pbc:element_mul(E, Acc),
                               io:format("Next ~p~n", [erlang_pbc:element_to_string(Next)]),
                               Next
-                      end, hd(Bleh), tl(Bleh)).
+                      end, 1, Bleh).
 
 hash_message(PubKey, Msg) ->
-    erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', PubKey#pubkey.verification_key), Msg).
+    Res = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', PubKey#pubkey.verification_key), Msg),
+    %erlang_pbc:element_pp_init(Res),
+    Res.
 
 lagrange(PubKey, One, Set, Index) ->
     true = ordsets:is_set(Set),
-    true = PubKey#pubkey.k == ordsets:size(Set),
+    %true = PubKey#pubkey.k == ordsets:size(Set),
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
     true = ordsets:is_subset(Set, MySet),
 
