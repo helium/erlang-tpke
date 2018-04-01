@@ -23,16 +23,16 @@ encrypt(PubKey, G1, Message) when is_binary(Message) ->
     W = erlang_pbc:element_pow(hashH(U, V), R),
     {U, V, W}.
 
-verify_ciphertext(PubKey, G1, {U, V, W}) ->
+verify_ciphertext(_PubKey, G1, {U, V, W}) ->
     H = hashH(U, V),
     erlang_pbc:element_cmp(erlang_pbc:element_pairing(G1, W), erlang_pbc:element_pairing(U, H)).
 
-verify_share(PubKey, G2, {Index, Share}, {U, V, W}) ->
+verify_share(PubKey, G2, {Index, Share}, {U, _V, _W}) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
     Y_i = lists:nth(Index+1, PubKey#pubkey.verification_keys),
     erlang_pbc:element_cmp(erlang_pbc:element_pairing(Share, G2), erlang_pbc:element_pairing(U, Y_i)).
 
-combine_shares(PubKey, {U, V, W}, Shares) ->
+combine_shares(PubKey, {U, V, _W}, Shares) ->
     {Indices, _} = lists:unzip(Shares),
     Set = ordsets:from_list(Indices),
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
