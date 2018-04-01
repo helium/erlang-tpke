@@ -79,7 +79,7 @@ combine_signature_shares(PubKey, Shares) ->
 
 hash_message(PubKey, Msg) ->
     Res = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', PubKey#pubkey.verification_key), Msg),
-    %erlang_pbc:element_pp_init(Res),
+    erlang_pbc:element_pp_init(Res),
     Res.
 
 lagrange(PubKey, One, Set, Index) ->
