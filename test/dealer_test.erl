@@ -45,7 +45,7 @@ threshold_decrypt_test_() ->
                           %% verify share
                           ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G2, Share, CipherText) || Share <- Shares])),
                           %% verify combine_shares
-                          ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, CipherText, random_n(K, Shares)))
+                          ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, CipherText, dealer:random_n(K, Shares)))
                   end
     end,
     {foreach, fun() -> ok end, fun(_) -> gen_server:stop(dealer) end, [
@@ -71,7 +71,7 @@ threshold_signatures_test_() ->
                           Signatures = [ tpke_privkey:sign(PrivKey, MessageToSign) || PrivKey <- PrivateKeys],
                           io:format("Signatures ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Signatures]]),
                           ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_signature_share(PubKey, G2, Share, MessageToSign) || Share <- Signatures])),
-                          Sig = tpke_pubkey:combine_signature_shares(PubKey, random_n(K, Signatures)),
+                          Sig = tpke_pubkey:combine_signature_shares(PubKey, dealer:random_n(K, Signatures)),
                           ?assert(tpke_pubkey:verify_signature(PubKey, G2, Sig, MessageToSign)),
                           ok
                   end
@@ -84,9 +84,3 @@ threshold_signatures_test_() ->
      {"Players: 100, Threshold: 30, Curve: MNT224", Fun(100, 30, 'MNT224')},
      {"Players: 100, Threshold: 30, Curve: MNT159", Fun(100, 30, 'MNT159')}
     ]}.
-
-random_n(N, List) ->
-    lists:sublist(shuffle(List), N).
-
-shuffle(List) ->
-    [X || {_,X} <- lists:sort([{rand:uniform(), N} || N <- List])].

@@ -2,7 +2,7 @@
 
 -behavior(gen_server).
 
--export([start_link/0, share_secret/2, start_link/3, adversaries/0, group/0, deal/0]).
+-export([start_link/0, share_secret/2, start_link/3, adversaries/0, group/0, deal/0, random_n/2, shuffle/1]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(state, {
@@ -69,3 +69,9 @@ share_secret(Xval, [Head | Tail] = _Coefficients, Y, X) ->
     NewY = erlang_pbc:element_add(Y, erlang_pbc:element_mul(Head, X)),
     NewX = erlang_pbc:element_mul(X, Xval),
     share_secret(Xval, Tail, NewY, NewX).
+
+random_n(N, List) ->
+    lists:sublist(shuffle(List), N).
+
+shuffle(List) ->
+    [X || {_,X} <- lists:sort([{rand:uniform(), N} || N <- List])].
