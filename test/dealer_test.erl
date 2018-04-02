@@ -79,8 +79,10 @@ threshold_signatures_test_() ->
     {foreach, fun() -> ok end, fun(_) -> gen_server:stop(dealer) end, [
      {"Players: 10, Threshold: 5, Curve: SS512", Fun(10, 5, 'SS512')},
      {"Players: 10, Threshold: 5, Curve: MNT224", Fun(10, 5, 'MNT224')},
+     {"Players: 10, Threshold: 5, Curve: MNT159", Fun(10, 5, 'MNT159')},
      {"Players: 100, Threshold: 30, Curve: SS512", Fun(100, 30, 'SS512')},
-     {"Players: 100, Threshold: 30, Curve: MNT224", Fun(100, 30, 'MNT224')}
+     {"Players: 100, Threshold: 30, Curve: MNT224", Fun(100, 30, 'MNT224')},
+     {"Players: 100, Threshold: 30, Curve: MNT159", Fun(100, 30, 'MNT159')}
     ]}.
 
 random_n(N, List) ->
