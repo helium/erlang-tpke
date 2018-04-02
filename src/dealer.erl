@@ -39,10 +39,10 @@ handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Pl
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, Adversaries)],
     MasterSecret = hd(Coefficients),
     MasterSecretKeyShares = [share_secret(N, Coefficients) || N <- lists:seq(1, Players)],
-    G1 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', Group), <<"geng1">>),
+    G1 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', Group), crypto:strong_rand_bytes(32)),
     G2 = case erlang_pbc:pairing_is_symmetric(Group) of
              true -> G1;
-             false -> erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', Group), <<"geng2">>)
+             false -> erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', Group), crypto:strong_rand_bytes(12))
          end,
     %% pre-process them for faster exponents later
     erlang_pbc:element_pp_init(G1),
