@@ -5,7 +5,7 @@
 -export([prop_combine_signature_shares/0]).
 
 prop_combine_signature_shares() ->
-    ?FORALL({Players, Threshold, Curve}, gen_players_threshold_curve(),
+    ?FORALL({{Players, Threshold}, Curve}, {gen_players_threshold(), gen_curve()},
             begin
                 dealer:start_link(Players, Threshold, Curve),
                 {ok, K} = dealer:adversaries(),
@@ -23,5 +23,13 @@ prop_combine_signature_shares() ->
                                       ]))
             end).
 
-gen_players_threshold_curve() ->
-    ?SUCHTHAT({Players, Threshold, Curve}, ?LET({X, Y, Z}, {int(), int(), 'SS512'}, {X, Y*3, Z}), Players > 3*Threshold+1).
+gen_players_threshold() ->
+    ?SUCHTHAT({Players, Threshold},
+              ?LET({X, Y},
+                   ?SUCHTHAT({A, B}, {int(), int()}, A > 0 andalso B > 0 andalso A > B),
+                   {X, (X div 4)+Y}),
+              Players > 0 andalso Threshold > 0 andalso Players > 3*Threshold+1).
+
+gen_curve() ->
+    %elements(['SS512', 'MNT224']).
+    elements(['SS512']).
