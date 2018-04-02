@@ -11,7 +11,7 @@ first_secret_equality_test() ->
     K = 5,
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, K)],
     Secret = hd(Coefficients),
-    FirstSecret = tpke_pubkey:f(0, Coefficients),
+    FirstSecret = dealer:share_secret(0, Coefficients),
     ?assert(erlang_pbc:element_cmp(Secret, FirstSecret)),
     gen_server:stop(dealer).
 
@@ -22,10 +22,10 @@ zero_reconstruction_test() ->
     Element = erlang_pbc:element_new('Zr', Group),
     K = 5,
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, K)],
-    FirstSecret = tpke_pubkey:f(0, Coefficients),
+    FirstSecret = dealer:share_secret(0, Coefficients),
     One = erlang_pbc:element_set(erlang_pbc:element_new('Zr', Group), 1),
     Set = ordsets:from_list(lists:seq(0, K-1)),
-    Bits = [ erlang_pbc:element_mul(tpke_pubkey:lagrange(PubKey, One, Set, J), tpke_pubkey:f(J+1, Coefficients)) || J <- ordsets:to_list(Set)],
+    Bits = [ erlang_pbc:element_mul(tpke_pubkey:lagrange(PubKey, One, Set, J), dealer:share_secret(J+1, Coefficients)) || J <- ordsets:to_list(Set)],
     SumBits = lists:foldl(fun erlang_pbc:element_add/2, hd(Bits), tl(Bits)),
     ?assert(erlang_pbc:element_cmp(FirstSecret, SumBits)),
     gen_server:stop(dealer).

@@ -10,7 +10,7 @@
 -type pubkey() :: #pubkey{}.
 
 -export_type([pubkey/0]).
--export([f/2, init/4, lagrange/4, encrypt/3, verify_ciphertext/3, verify_share/4, combine_shares/3, hash_message/2, verify_signature/4, combine_signature_shares/2, verify_signature_share/4]).
+-export([init/4, lagrange/4, encrypt/3, verify_ciphertext/3, verify_share/4, combine_shares/3, hash_message/2, verify_signature/4, combine_signature_shares/2, verify_signature_share/4]).
 
 init(Players, K, VK, VKs) ->
     #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs}.
@@ -105,17 +105,6 @@ lagrange(PubKey, One, Set, Index) ->
     Res = erlang_pbc:element_div(Num, Den),
     io:format("Res ~p~n", [erlang_pbc:element_to_string(Res)]),
     Res.
-
-f(Xval, Coefficients) ->
-    Zero = erlang_pbc:element_set(hd(Coefficients), 0),
-    One = erlang_pbc:element_set(hd(Coefficients), 1),
-    f(Xval, Coefficients, Zero, One).
-
-f(_Xval, [] = _Coefficients, NewY, _InitX) -> NewY;
-f(Xval, [Head | Tail] = _Coefficients, Y, X) ->
-    NewY = erlang_pbc:element_add(Y, erlang_pbc:element_mul(Head, X)),
-    NewX = erlang_pbc:element_mul(X, Xval),
-    f(Xval, Tail, NewY, NewX).
 
 hashG(G) ->
     crypto:hash(sha256, erlang_pbc:element_to_binary(G)).
