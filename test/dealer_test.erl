@@ -18,7 +18,7 @@ first_secret_equality_test() ->
 zero_reconstruction_test() ->
     dealer:start_link(),
     {ok, Group} = dealer:group(),
-    {ok, G1, G2, PubKey, _PrivateKeys} = dealer:deal(),
+    {ok, _G1, _G2, PubKey, _PrivateKeys} = dealer:deal(),
     Element = erlang_pbc:element_new('Zr', Group),
     K = 5,
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, K)],
@@ -34,7 +34,7 @@ threshold_decrypt_test_() ->
     Fun = fun(Players, Threshold, Curve) ->
                   fun() ->
                           dealer:start_link(Players, Threshold, Curve),
-                          {ok, Group} = dealer:group(),
+                          {ok, _Group} = dealer:group(),
                           {ok, G1, G2, PubKey, PrivateKeys} = dealer:deal(),
                           {ok, K} = dealer:adversaries(),
                           Message = crypto:hash(sha256, <<"my hovercraft is full of eels">>),
@@ -61,8 +61,8 @@ threshold_signatures_test_() ->
                           dealer:start_link(Players, Threshold, Curve),
                           %dealer:start_link(10, 5, 'SS512'),
                           {ok, K} = dealer:adversaries(),
-                          {ok, Group} = dealer:group(),
-                          {ok, G1, G2, PubKey, PrivateKeys} = dealer:deal(),
+                          {ok, _Group} = dealer:group(),
+                          {ok, _G1, G2, PubKey, PrivateKeys} = dealer:deal(),
 
                           %% Test threshold signatures, too
                           MessageToSign = tpke_pubkey:hash_message(PubKey, crypto:hash(sha256, crypto:strong_rand_bytes(12))),
