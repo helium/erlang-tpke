@@ -28,7 +28,7 @@ gen_players_threshold() ->
               ?LET({X, Y},
                    ?SUCHTHAT({A, B}, {int(), int()}, A > 0 andalso B > 0 andalso A > B),
                    {X, (X div 4)+Y}),
-              Players > 0 andalso Threshold > 0 andalso Players > 3*Threshold+1).
+              Players > 3*Threshold+1).
 
 gen_curve() ->
     %elements(['SS512', 'MNT224']).
