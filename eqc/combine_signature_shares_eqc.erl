@@ -59,8 +59,7 @@ gen_players_threshold() ->
               Players > 3*Threshold+1 andalso Threshold > 1).
 
 gen_curve() ->
-    %elements(['SS512', 'MNT224']).
-    elements(['SS512']).
+    elements(['SS512', 'MNT224']).
 
 gen_failure_mode() ->
     elements([none, wrong_message, wrong_key, duplicate_shares]).
