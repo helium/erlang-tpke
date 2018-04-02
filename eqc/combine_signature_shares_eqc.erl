@@ -47,7 +47,7 @@ prop_combine_signature_shares() ->
                               io:format("Shares ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Shares]])
                           end,
                           conjunction([
-                                       {verify_signature_share, eqc:equals(true, (Fail /= none) /= SharesVerified)},
+                                       {verify_signature_share, eqc:equals(true, (Fail /= none andalso Fail /= duplicate_shares) /= SharesVerified)},
                                        {verify_combine_signature_shares, eqc:equals(true, (Fail /= none) /= SignatureVerified)}
                                       ]))
             end).
@@ -57,11 +57,11 @@ gen_players_threshold() ->
               ?LET({X, Y},
                    ?SUCHTHAT({A, B}, {int(), int()}, A > 0 andalso B >= 0 andalso A > B),
                    {X*3, X - Y}),
-              Players > 3*Threshold+1).
+              Players > 3*Threshold+1 andalso Threshold > 1).
 
 gen_curve() ->
     %elements(['SS512', 'MNT224']).
     elements(['SS512']).
 
 gen_failure_mode() ->
-    elements([none, wrong_message, wrong_key]).%%, duplicate_shares]).
+    elements([none, wrong_message, wrong_key, duplicate_shares]).
