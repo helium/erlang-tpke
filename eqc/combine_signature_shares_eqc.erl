@@ -30,7 +30,6 @@ prop_combine_signature_shares() ->
                 Shares = case Fail of
                              duplicate_shares ->
                                  %% provide K shares, but with a duplicate
-                                 %% XXX this breaks when k=1 obviously, so it is commented out for now
                                  [S|Ss] = dealer:random_n(K, Signatures),
                                  [S, S | tl(Ss)];
                              none -> dealer:random_n(K, Signatures);

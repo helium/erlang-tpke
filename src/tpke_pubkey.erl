@@ -40,9 +40,6 @@ verify_signature_share(PubKey, G2, {Index, Share}, H) ->
 verify_signature(PubKey, G2, Signature, H) ->
     A = erlang_pbc:element_pairing(Signature, G2),
     B = erlang_pbc:element_pairing(H, PubKey#pubkey.verification_key),
-    io:format("Signature ~p~n", [erlang_pbc:element_to_string(Signature)]),
-    io:format("A ~p~n", [erlang_pbc:element_to_string(A)]),
-    io:format("B ~p~n", [erlang_pbc:element_to_string(B)]),
     erlang_pbc:element_cmp(A, B).
 
 combine_shares(PubKey, {U, V, _W}, Shares) ->
@@ -52,7 +49,6 @@ combine_shares(PubKey, {U, V, _W}, Shares) ->
     true = ordsets:is_subset(Set, MySet),
 
     One = erlang_pbc:element_set(erlang_pbc:element_new('Zr', U), 1),
-    io:format("ONE ~p~n", [erlang_pbc:element_to_string(One)]),
 
     Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, One, Set, Index)) || {Index, Share} <- Shares],
     Res = lists:foldl(fun(E, Acc) ->
@@ -67,14 +63,10 @@ combine_signature_shares(PubKey, Shares) ->
     true = ordsets:is_subset(Set, MySet),
 
     One = erlang_pbc:element_set(erlang_pbc:element_new('Zr', PubKey#pubkey.verification_key), 1),
-    io:format("ONE ~p~n", [erlang_pbc:element_to_string(One)]),
 
     Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, One, Set, Index)) || {Index, Share} <- Shares],
-    io:format("Bleh ~p~n", [[ erlang_pbc:element_to_string(S) || S <- Bleh]]),
     lists:foldl(fun(E, Acc) ->
-                              Next = erlang_pbc:element_mul(E, Acc),
-                              io:format("Next ~p~n", [erlang_pbc:element_to_string(Next)]),
-                              Next
+                              erlang_pbc:element_mul(E, Acc)
                       end, 1, Bleh).
 
 hash_message(PubKey, Msg) ->
@@ -100,11 +92,7 @@ lagrange(PubKey, One, Set, Index) ->
                               erlang_pbc:element_mul(Acc, E)
                       end, One, [ Index - JJ  || JJ <- ordsets:to_list(Set), JJ /= Index]),
 
-    io:format("Num ~p~n", [erlang_pbc:element_to_string(Num)]),
-    io:format("Den ~p~n", [erlang_pbc:element_to_string(Den)]),
-    Res = erlang_pbc:element_div(Num, Den),
-    io:format("Res ~p~n", [erlang_pbc:element_to_string(Res)]),
-    Res.
+    erlang_pbc:element_div(Num, Den).
 
 hashG(G) ->
     crypto:hash(sha256, erlang_pbc:element_to_binary(G)).
