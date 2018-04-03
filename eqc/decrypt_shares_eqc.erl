@@ -12,13 +12,13 @@ prop_decrypt_shares() ->
                 {ok, _Group} = dealer:group(),
                 {ok, G1, G2, PubKey, PrivateKeys} = dealer:deal(),
 
-                FailPKeys = case Fail of
-                    wrong_key ->
-                        {ok, _, _, _, PKs} = dealer:deal(),
-                        PKs;
-                    _ ->
-                        PrivateKeys
-                end,
+                {FailPubKey, FailPKeys} = case Fail of
+                                              wrong_key ->
+                                                  {ok, _, _, FPk, PKs} = dealer:deal(),
+                                                  {FPk, PKs};
+                                              _ ->
+                                                  {PubKey, PrivateKeys}
+                                          end,
 
                 Message = crypto:hash(sha256, crypto:strong_rand_bytes(12)),
                 FailMessage = case Fail of
@@ -29,24 +29,38 @@ prop_decrypt_shares() ->
                               end,
 
                 CipherText = tpke_pubkey:encrypt(PubKey, G1, Message),
-                FailCipherText = tpke_pubkey:encrypt(PubKey, G1, FailMessage),
+                FailCipherText = tpke_pubkey:encrypt(FailPubKey, G1, FailMessage),
 
-                Shares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
+                GoodShares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
                 FailShares = [ tpke_privkey:decrypt_share(SK, FailCipherText) || SK <- FailPKeys ],
+
+                Shares = case Fail of
+                             duplicate_shares ->
+                                 %% provide K shares, but with a duplicate
+                                 [S|Ss] = dealer:random_n(K, GoodShares),
+                                 [S, S | tl(Ss)];
+                             none -> dealer:random_n(K, GoodShares);
+                             _ ->
+                                 %% either wrong_message or wrong_key
+                                 dealer:random_n(K-1, GoodShares) ++ dealer:random_n(1, FailShares)
+                         end,
+
 
                 gen_server:stop(dealer),
 
                 VerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, G1, CipherText),
+                FailVerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, G1, FailCipherText),
                 VerifiedShares = lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G2, Share, CipherText) || Share <- Shares]),
-                VerifiedCombinedShares = tpke_pubkey:combine_shares(PubKey, CipherText, dealer:random_n(K, Shares)),
+                VerifiedCombinedShares = Message == tpke_pubkey:combine_shares(PubKey, CipherText, Shares),
 
                 ?WHENFAIL(begin
                               io:format("Shares ~p~n", [Shares])
                           end,
                           conjunction([
-                                       {verify_ciphertext, eqc:equals(true, (Fail /= wrong_message andalso Fail /= wrong_key) /= VerifiedCipherText)},
-                                       {verify_share, eqc:equals(true, (Fail /= wrong_message andalso Fail /= wrong_key) /= VerifiedShares)},
-                                       {verify_combine_shares, eqc:equals(Message, (Fail /= wrong_message andalso Fail /= wrong_key) /= VerifiedCombinedShares)}
+                                       {verify_ciphertext, eqc:equals(true, VerifiedCipherText)},
+                                       {dont_verify_wrong_ciphertext, eqc:equals((Fail == none orelse Fail == duplicate_shares), FailVerifiedCipherText)},
+                                       {verify_share, eqc:equals((Fail == none orelse Fail == duplicate_shares),  VerifiedShares)},
+                                       {verify_combine_shares, eqc:equals((Fail == none),  VerifiedCombinedShares)}
                                       ]))
             end).
 
@@ -61,4 +75,4 @@ gen_curve() ->
     elements(['SS512']).
 
 gen_failure_mode() ->
-    elements([wrong_message, wrong_key]).
+    elements([none, duplicate_shares]).%, wrong_message, wrong_key]).
