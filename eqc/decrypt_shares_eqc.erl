@@ -58,7 +58,6 @@ prop_decrypt_shares() ->
                 FailVerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, G1, FailCipherText),
                 VerifiedShares = lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G2, Share, CipherText) || Share <- Shares]),
                 VerifiedCombinedShares = tpke_pubkey:combine_shares(PubKey, G1, CipherText, Shares),
-                io:format("Fail ~p ~p~n", [Fail, VerifiedCombinedShares == Message]),
 
                 ?WHENFAIL(begin
                               io:format("Shares ~p~n", [Shares])
