@@ -15,14 +15,18 @@
 init(PubKey, SecretKey, SecretKeyIndex) ->
     #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
 
+
+%% Section 3.2.2 Baek and Zheng
+%% Dski(C):
 decrypt_share(PrivKey, G1, {U, V, W}) ->
-    H = tpke_pubkey:hashH(U, V),
-    Share = case  erlang_pbc:element_cmp(erlang_pbc:element_pairing(G1, W), erlang_pbc:element_pairing(U, H)) of
+    Share = case tpke_pubkey:verify_ciphertext(PrivKey#privkey.pubkey, G1, {U, V, W}) of
                 true ->
+                    %% computes Ui = xiU
                     erlang_pbc:element_mul(PrivKey#privkey.secret_key, U);
                 false ->
                     '?'
             end,
+    %% output Di = (i, Ui)
     {PrivKey#privkey.secret_key_index, Share}.
 
 
