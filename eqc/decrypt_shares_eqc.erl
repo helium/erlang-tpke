@@ -12,12 +12,12 @@ prop_decrypt_shares() ->
                 {ok, _Group} = dealer:group(),
                 {ok, G1, G2, PubKey, PrivateKeys} = dealer:deal(),
 
-                {FailPubKey, FailPKeys} = case Fail of
+                {FailG1, FailPubKey, FailPKeys} = case Fail of
                                               wrong_key ->
-                                                  {ok, _, _, FPk, PKs} = dealer:deal(),
-                                                  {FPk, PKs};
+                                                  {ok, G1_1, _, FPk, PKs} = dealer:deal(),
+                                                  {G1_1, FPk, PKs};
                                               _ ->
-                                                  {PubKey, PrivateKeys}
+                                                  {G1, PubKey, PrivateKeys}
                                           end,
 
                 Message = crypto:hash(sha256, crypto:strong_rand_bytes(12)),
@@ -29,10 +29,16 @@ prop_decrypt_shares() ->
                               end,
 
                 CipherText = tpke_pubkey:encrypt(PubKey, G1, Message),
-                FailCipherText = tpke_pubkey:encrypt(FailPubKey, G1, FailMessage),
+                FailCipherText = tpke_pubkey:encrypt(FailPubKey, FailG1, FailMessage),
 
-                GoodShares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
-                FailShares = [ tpke_privkey:decrypt_share(SK, FailCipherText) || SK <- FailPKeys ],
+                GoodShares = [ tpke_privkey:decrypt_share(SK, G1, CipherText) || SK <- PrivateKeys ],
+
+                FailShares = case Fail of
+                                 wrong_message ->
+                                     [ tpke_privkey:decrypt_share(SK, G1, FailCipherText) || SK <- FailPKeys ];
+                                 _ ->
+                                     [ tpke_privkey:decrypt_share(SK, G1, CipherText) || SK <- FailPKeys ]
+                             end,
 
                 Shares = case Fail of
                              duplicate_shares ->
@@ -51,16 +57,17 @@ prop_decrypt_shares() ->
                 VerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, G1, CipherText),
                 FailVerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, G1, FailCipherText),
                 VerifiedShares = lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G2, Share, CipherText) || Share <- Shares]),
-                VerifiedCombinedShares = Message == tpke_pubkey:combine_shares(PubKey, CipherText, Shares),
+                VerifiedCombinedShares = tpke_pubkey:combine_shares(PubKey, G1, CipherText, Shares),
+                io:format("Fail ~p ~p~n", [Fail, VerifiedCombinedShares == Message]),
 
                 ?WHENFAIL(begin
                               io:format("Shares ~p~n", [Shares])
                           end,
                           conjunction([
-                                       {verify_ciphertext, eqc:equals(true, VerifiedCipherText)},
-                                       {dont_verify_wrong_ciphertext, eqc:equals((Fail == none orelse Fail == duplicate_shares), FailVerifiedCipherText)},
+                                       {verify_ciphertext, VerifiedCipherText},
+                                       {dont_verify_wrong_ciphertext, eqc:equals((Fail /= wrong_key), FailVerifiedCipherText)},
                                        {verify_share, eqc:equals((Fail == none orelse Fail == duplicate_shares),  VerifiedShares)},
-                                       {verify_combine_shares, eqc:equals((Fail == none),  VerifiedCombinedShares)}
+                                       {verify_combine_shares, eqc:equals((Fail == none),  Message == VerifiedCombinedShares)}
                                       ]))
             end).
 
@@ -75,4 +82,4 @@ gen_curve() ->
     elements(['SS512']).
 
 gen_failure_mode() ->
-    elements([none, duplicate_shares]).%, wrong_message, wrong_key]).
+    elements([none, wrong_key, wrong_message, duplicate_shares]).

@@ -42,7 +42,7 @@ handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Pl
     G1 = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', Group), crypto:strong_rand_bytes(32)),
     G2 = case erlang_pbc:pairing_is_symmetric(Group) of
              true -> G1;
-             false -> erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', Group), crypto:strong_rand_bytes(12))
+             false -> erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', Group), crypto:strong_rand_bytes(32))
          end,
     %% pre-process them for faster exponents later
     erlang_pbc:element_pp_init(G1),

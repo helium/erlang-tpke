@@ -41,11 +41,11 @@ threshold_decrypt_test_() ->
                           CipherText = tpke_pubkey:encrypt(PubKey, G1, Message),
                           %% verify ciphertext
                           ?assert(tpke_pubkey:verify_ciphertext(PubKey, G1, CipherText)),
-                          Shares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
+                          Shares = [ tpke_privkey:decrypt_share(SK, G1, CipherText) || SK <- PrivateKeys ],
                           %% verify share
-                          ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G2, Share, CipherText) || Share <- Shares])),
+                          ?assert(lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, G1, Share, CipherText) || Share <- Shares])),
                           %% verify combine_shares
-                          ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, CipherText, dealer:random_n(K, Shares)))
+                          ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, G1, CipherText, dealer:random_n(K, Shares)))
                   end
     end,
     {foreach, fun() -> ok end, fun(_) -> gen_server:stop(dealer) end, [

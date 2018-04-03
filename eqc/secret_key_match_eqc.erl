@@ -2,16 +2,17 @@
 
 -include_lib("eqc/include/eqc.hrl").
 
--define(GROUP, erlang_pbc:group_new('SS512')).
--define(ELEMENT, erlang_pbc:element_new('Zr', ?GROUP)).
 
 -export([prop_secret_key_match/0]).
 
 prop_secret_key_match() ->
-    ?FORALL(Coefficients, gen_coefficients(),
+    ?FORALL(N, gen_coefficients(),
             begin
+                Group =erlang_pbc:group_new('SS512'),
+                Element = erlang_pbc:element_new('Zr', Group),
+                Coefficients = [ erlang_pbc:element_random(Element) || _ <- lists:seq(1, N)],
                 Secret = hd(Coefficients),
-                FirstSecret = tpke_pubkey:f(0, Coefficients),
+                FirstSecret = dealer:share_secret(0, Coefficients),
                 ?WHENFAIL(begin
                               io:format("Secret ~p~n", [erlang_pbc:element_to_string(Secret)]),
                               io:format("FirstSecret ~p~n", [erlang_pbc:element_to_string(FirstSecret)])
@@ -22,4 +23,4 @@ prop_secret_key_match() ->
             end).
 
 gen_coefficients() ->
-    ?SUCHTHAT(L, list(erlang_pbc:element_random(?ELEMENT)), length(L) > 0).
+    ?SUCHTHAT(L, int(), L > 0).
