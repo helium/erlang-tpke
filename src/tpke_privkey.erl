@@ -30,5 +30,9 @@ decrypt_share(PrivKey, G1, {U, V, W}) ->
     {PrivKey#privkey.secret_key_index, Share}.
 
 
+%% Section 5.2 Boldyrevya
+%% MS
 sign(PrivKey, H) ->
+    %% σj←H(M)^xj
+    %% Note that H(M) has already been computed here
     {PrivKey#privkey.secret_key_index, erlang_pbc:element_pow(H, PrivKey#privkey.secret_key)}.

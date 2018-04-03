@@ -78,12 +78,21 @@ combine_shares(PubKey, G2, {U, V, W}, Shares) ->
     end.
 
 
-verify_signature_share(PubKey, G2, {Index, Share}, H) ->
+%% Section 3.1 Boldyreva
+%% Decisional Diffie-Hellman (DDH) problem.
+verify_signature_share(PubKey, G2, {Index, Share}, HM) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
-    B = lists:nth(Index+1, PubKey#pubkey.verification_keys),
-    erlang_pbc:element_cmp(erlang_pbc:element_pairing(Share, G2), erlang_pbc:element_pairing(H, B)).
+    Y = lists:nth(Index+1, PubKey#pubkey.verification_keys),
+    %% In order to verify the validity of a candidate signature σ of a messageM,
+    %% a verifier simply checks whether (g,y,H(M),σ) is a valid Diffie-Hellman tuple.
+    %% Given (g,g^x,g^y,g^z) it is possible to check z=xy if e(g,g^z) == e(g^x,g^y)
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(G2, Share), erlang_pbc:element_pairing(Y, HM)).
 
+%% Section 3.2 Boldyrevya
+%% V(pk,M,σ) :
 verify_signature(PubKey, G2, Signature, H) ->
+    %% VDDH(g,y,H(M),σ)
+    %% VDDH(g,pkL,H(M),σ)
     A = erlang_pbc:element_pairing(Signature, G2),
     B = erlang_pbc:element_pairing(H, PubKey#pubkey.verification_key),
     erlang_pbc:element_cmp(A, B).
@@ -94,11 +103,15 @@ combine_signature_shares(PubKey, Shares) ->
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
     true = ordsets:is_subset(Set, MySet),
 
+    %% TODO for robustness we should verify each share before combining them
+
+    %% pkL= Πj∈J(pkj) =Πj∈J(gxj)
     Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, Set, Index)) || {Index, Share} <- Shares],
     lists:foldl(fun(E, Acc) ->
                               erlang_pbc:element_mul(E, Acc)
                       end, hd(Bleh), tl(Bleh)).
 
+%% H(M)
 hash_message(PubKey, Msg) ->
     Res = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', PubKey#pubkey.verification_key), Msg),
     erlang_pbc:element_pp_init(Res),
