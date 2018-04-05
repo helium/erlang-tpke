@@ -10,10 +10,10 @@ prop_combine_signature_shares() ->
                 {ok, _} = dealer:start_link(Players, Threshold, Curve),
                 {ok, K} = dealer:adversaries(),
                 {ok, _Group} = dealer:group(),
-                {ok, _G1, G2, PubKey, PrivateKeys} = dealer:deal(),
+                {ok, PubKey, PrivateKeys} = dealer:deal(),
                 FailPKeys = case Fail of
                     wrong_key ->
-                        {ok, _, _, _, PKs} = dealer:deal(),
+                        {ok, _, PKs} = dealer:deal(),
                         PKs;
                     _ ->
                         PrivateKeys
@@ -39,8 +39,8 @@ prop_combine_signature_shares() ->
                          end,
                 Sig = tpke_pubkey:combine_signature_shares(PubKey, Shares),
                 gen_server:stop(dealer),
-                SharesVerified = lists:all(fun(X) -> X end, [tpke_pubkey:verify_signature_share(PubKey, G2, Share, MessageToSign) || Share <- Shares]),
-                SignatureVerified = tpke_pubkey:verify_signature(PubKey, G2, Sig, MessageToSign),
+                SharesVerified = lists:all(fun(X) -> X end, [tpke_pubkey:verify_signature_share(PubKey, Share, MessageToSign) || Share <- Shares]),
+                SignatureVerified = tpke_pubkey:verify_signature(PubKey, Sig, MessageToSign),
                 ?WHENFAIL(begin
                               io:format("Signatures ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Signatures]]),
                               io:format("Shares ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Shares]])

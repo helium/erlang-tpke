@@ -10,7 +10,7 @@
 
 -export_type([privkey/0]).
 
--export([init/3, decrypt_share/3, sign/2, public_key/1]).
+-export([init/3, decrypt_share/2, sign/2, public_key/1]).
 
 init(PubKey, SecretKey, SecretKeyIndex) ->
     #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
@@ -18,8 +18,8 @@ init(PubKey, SecretKey, SecretKeyIndex) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% Dski(C):
-decrypt_share(PrivKey, G1, {U, V, W}) ->
-    Share = case tpke_pubkey:verify_ciphertext(PrivKey#privkey.pubkey, G1, {U, V, W}) of
+decrypt_share(PrivKey, {U, V, W}) ->
+    Share = case tpke_pubkey:verify_ciphertext(PrivKey#privkey.pubkey, {U, V, W}) of
                 true ->
                     %% computes Ui = xiU
                     erlang_pbc:element_mul(PrivKey#privkey.secret_key, U);

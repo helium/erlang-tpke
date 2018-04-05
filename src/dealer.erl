@@ -49,9 +49,9 @@ handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Pl
     erlang_pbc:element_pp_init(G2),
     VerificationKey = erlang_pbc:element_pow(G2, MasterSecret),
     VerificationKeys = [erlang_pbc:element_pow(G2, SecretKeyShare) || SecretKeyShare <- MasterSecretKeyShares],
-    PublicKey = tpke_pubkey:init(Players, Adversaries, VerificationKey, VerificationKeys),
+    PublicKey = tpke_pubkey:init(Players, Adversaries, G1, G2, VerificationKey, VerificationKeys),
     PrivateKeys = [tpke_privkey:init(PublicKey, SKShare, Index) || {Index, SKShare} <- enumerate(MasterSecretKeyShares)],
-    {reply, {ok, G1, G2, PublicKey, PrivateKeys}, State#state{pubkey=PublicKey, privkeys=PrivateKeys}}.
+    {reply, {ok, PublicKey, PrivateKeys}, State#state{pubkey=PublicKey, privkeys=PrivateKeys}}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
