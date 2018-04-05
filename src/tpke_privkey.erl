@@ -10,7 +10,7 @@
 
 -export_type([privkey/0]).
 
--export([init/3, decrypt_share/3, sign/2]).
+-export([init/3, decrypt_share/3, sign/2, public_key/1]).
 
 init(PubKey, SecretKey, SecretKeyIndex) ->
     #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
@@ -36,3 +36,7 @@ sign(PrivKey, H) ->
     %% σj←H(M)^xj
     %% Note that H(M) has already been computed here
     {PrivKey#privkey.secret_key_index, erlang_pbc:element_pow(H, PrivKey#privkey.secret_key)}.
+
+-spec public_key(privkey()) -> tpke_pubkey:pubkey().
+public_key(PrivKey) ->
+    PrivKey#privkey.pubkey.
