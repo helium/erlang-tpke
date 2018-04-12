@@ -12,7 +12,7 @@
 -type pubkey() :: #pubkey{}.
 
 -export_type([pubkey/0]).
--export([init/6, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3]).
+-export([init/6, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2]).
 
 -export([hashH/2]).
 
@@ -118,6 +118,9 @@ hash_message(PubKey, Msg) ->
     Res = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', PubKey#pubkey.verification_key), Msg),
     erlang_pbc:element_pp_init(Res),
     Res.
+
+deserialize_element(PubKey, Binary) when is_binary(Binary) ->
+    erlang_pbc:binary_to_element(PubKey#pubkey.verification_key, Binary).
 
 lagrange(PubKey, Set, Index) ->
     true = ordsets:is_set(Set),
