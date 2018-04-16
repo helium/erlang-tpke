@@ -7,8 +7,8 @@
 
 -record(state, {
           pubkey :: tpke_pubkey:pubkey(),
-          privkeys :: [tpke_privkey:privkeys(), ...],
-          group, %% Group type?
+          privkeys :: [tpke_privkey:privkey(), ...],
+          group :: erlang_pbc:group(),
           players :: non_neg_integer(),
           adversaries :: non_neg_integer()
          }).

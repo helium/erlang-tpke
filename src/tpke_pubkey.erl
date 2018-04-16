@@ -51,7 +51,7 @@ verify_ciphertext(PubKey, {U, V, W}) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% Vvk(C, Di):
--spec verify_share(pubkey(), {non_neg_integer(), erlang_pbc:element()}, encrypted()) -> boolean().
+-spec verify_share(pubkey(), tpke_privkey:share(), encrypted()) -> boolean().
 verify_share(PubKey, {Index, Share}, {U, V, W}) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
     case verify_ciphertext(PubKey, {U, V, W}) of
