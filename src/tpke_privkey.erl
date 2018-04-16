@@ -2,8 +2,8 @@
 
 -record(privkey, {
           pubkey :: tpke_pubkey:pubkey(),
-          secret_key :: binary(),
-          secret_key_index :: integer()
+          secret_key :: erlang_pbc:element(),
+          secret_key_index :: non_neg_integer()
          }).
 
 -opaque privkey() :: #privkey{}.
@@ -13,7 +13,7 @@
 
 -export([init/3, decrypt_share/2, sign/2, public_key/1]).
 
--spec init(tpke_pubkey:pubkey(), binary(), integer()) -> #privkey{}.
+-spec init(tpke_pubkey:pubkey(), erlang_pbc:element(), non_neg_integer()) -> privkey().
 init(PubKey, SecretKey, SecretKeyIndex) ->
     #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
 
