@@ -11,7 +11,7 @@
 
 -type pubkey() :: #pubkey{}.
 %% XXX: this is the {U, V, W} tuple, probably name it better?
--opaque encrypted() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
+-type encrypted() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
 
 -export_type([pubkey/0, encrypted/0]).
 -export([init/6, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2]).
@@ -138,7 +138,7 @@ deserialize_element(PubKey, Binary) when is_binary(Binary) ->
     erlang_pbc:binary_to_element(PubKey#pubkey.verification_key, Binary).
 
 
--spec lagrange(pubkey(), sets:set(), pos_integer()) -> erlang_pbc:element().
+-spec lagrange(pubkey(), ordsets:set(non_neg_integer()), non_neg_integer()) -> erlang_pbc:element().
 lagrange(PubKey, Set, Index) ->
     true = ordsets:is_set(Set),
     %true = PubKey#pubkey.k == ordsets:size(Set),
@@ -164,7 +164,7 @@ lagrange(PubKey, Set, Index) ->
 hashG(G) ->
     crypto:hash(sha256, erlang_pbc:element_to_binary(G)).
 
--spec hashH(erlang_pbc:element(), integer()) -> erlang_pbc:element().
+-spec hashH(erlang_pbc:element(), binary()) -> erlang_pbc:element().
 hashH(G, X) ->
     32 = byte_size(X),
     erlang_pbc:element_from_hash(erlang_pbc:element_new('G2', G), list_to_binary([erlang_pbc:element_to_binary(G), X])).
@@ -175,7 +175,7 @@ xor_bin(A, B) ->
     32 = byte_size(B),
     xor_bin(A, B, []).
 
--spec xor_bin(binary(), binary(), list()) -> binary().
+-spec xor_bin(binary(), binary(), [byte()]) -> binary().
 xor_bin(<<>>, <<>>, Acc) ->
     list_to_binary(lists:reverse(Acc));
 xor_bin(<<A:8/integer-unsigned, T1/binary>>, <<B:8/integer-unsigned, T2/binary>>, Acc) ->
