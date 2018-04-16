@@ -1,12 +1,12 @@
 -module(tpke_pubkey).
 
 -record(pubkey, {
-          players,
-          k,
-          g1,
-          g2,
-          verification_key,
-          verification_keys
+          players :: pos_integer(),
+          k :: non_neg_integer(),
+          g1 :: erlang_pbc:element(),
+          g2 :: erlang_pbc:element(),
+          verification_key :: erlang_pbc:element(),
+          verification_keys :: [erlang_pbc:element(), ...]
          }).
 
 -type pubkey() :: #pubkey{}.
@@ -16,11 +16,13 @@
 
 -export([hashH/2]).
 
+-spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...]) -> pubkey().
 init(Players, K, G1, G2, VK, VKs) ->
     #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs, g1=G1, g2=G2}.
 
 %% Section 3.2.2 Baek and Zheng
 %% Epk(m):
+-spec encrypt(pubkey(), binary()) -> {erlang_pbc:element(), binary(), erlang_pbc:element()}.
 encrypt(PubKey, Message) when is_binary(Message) ->
     32 = byte_size(Message),
     %% r is randomly chosen from ZZ∗q
@@ -36,6 +38,7 @@ encrypt(PubKey, Message) when is_binary(Message) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% common code to verify ciphertext is valid
+-spec verify_ciphertext(pubkey(), {erlang_pbc:element(), binary(), erlang_pbc:element()}) -> boolean().
 verify_ciphertext(PubKey, {U, V, W}) ->
     %% H = H(U, V)
     H = hashH(U, V),
@@ -44,6 +47,7 @@ verify_ciphertext(PubKey, {U, V, W}) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% Vvk(C, Di):
+-spec verify_share(pubkey(), {non_neg_integer(), erlang_pbc:element()}, {erlang_pbc:element(), binary(), erlang_pbc:element()}) -> boolean().
 verify_share(PubKey, {Index, Share}, {U, V, W}) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
     case verify_ciphertext(PubKey, {U, V, W}) of

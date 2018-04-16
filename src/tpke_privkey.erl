@@ -2,22 +2,24 @@
 
 -record(privkey, {
           pubkey :: tpke_pubkey:pubkey(),
-          secret_key,
-          secret_key_index
+          secret_key :: binary(),
+          secret_key_index :: integer()
          }).
 
--type privkey() :: #privkey{}.
+-opaque privkey() :: #privkey{}.
+-type share() :: {non_neg_integer(), erlang_pbc:element()}.
 
--export_type([privkey/0]).
+-export_type([privkey/0, share/0]).
 
 -export([init/3, decrypt_share/2, sign/2, public_key/1]).
 
+-spec init(tpke_pubkey:pubkey(), binary(), integer()) -> #privkey{}.
 init(PubKey, SecretKey, SecretKeyIndex) ->
     #privkey{pubkey=PubKey, secret_key=SecretKey, secret_key_index=SecretKeyIndex}.
 
-
 %% Section 3.2.2 Baek and Zheng
 %% Dski(C):
+-spec decrypt_share(privkey(), {erlang_pbc:element(), binary(), erlang_pbc:element()}) -> share().
 decrypt_share(PrivKey, {U, V, W}) ->
     Share = case tpke_pubkey:verify_ciphertext(PrivKey#privkey.pubkey, {U, V, W}) of
                 true ->
@@ -32,6 +34,7 @@ decrypt_share(PrivKey, {U, V, W}) ->
 
 %% Section 5.2 Boldyrevya
 %% MS
+-spec sign(privkey(), binary()) -> share().
 sign(PrivKey, H) ->
     %% σj←H(M)^xj
     %% Note that H(M) has already been computed here
