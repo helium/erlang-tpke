@@ -10,23 +10,22 @@
          }).
 
 -type pubkey() :: #pubkey{}.
-%% XXX: this is the {U, V, W} tuple, probably name it better?
--type encrypted() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
+-type ciphertext() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
 
--export_type([pubkey/0, encrypted/0]).
+-export_type([pubkey/0, ciphertext/0]).
 -export([init/6, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2]).
 
 -export([hashH/2]).
 
-%% XXX: I suppose K can be 0 here?
+%% Note: K can be 0 here, meaning every player is honest.
 -spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...]) -> pubkey().
 init(Players, K, G1, G2, VK, VKs) ->
     #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs, g1=G1, g2=G2}.
 
 %% Section 3.2.2 Baek and Zheng
 %% Epk(m):
-%% XXX: why is V a binary? by design or am I mistaken
--spec encrypt(pubkey(), binary()) -> encrypted().
+%% Note: V is a binary, this is by design in the paper.
+-spec encrypt(pubkey(), binary()) -> ciphertext().
 encrypt(PubKey, Message) when is_binary(Message) ->
     32 = byte_size(Message),
     %% r is randomly chosen from ZZ∗q
@@ -42,7 +41,7 @@ encrypt(PubKey, Message) when is_binary(Message) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% common code to verify ciphertext is valid
--spec verify_ciphertext(pubkey(), encrypted()) -> boolean().
+-spec verify_ciphertext(pubkey(), ciphertext()) -> boolean().
 verify_ciphertext(PubKey, {U, V, W}) ->
     %% H = H(U, V)
     H = hashH(U, V),
@@ -51,7 +50,7 @@ verify_ciphertext(PubKey, {U, V, W}) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% Vvk(C, Di):
--spec verify_share(pubkey(), tpke_privkey:share(), encrypted()) -> boolean().
+-spec verify_share(pubkey(), tpke_privkey:share(), ciphertext()) -> boolean().
 verify_share(PubKey, {Index, Share}, {U, V, W}) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
     case verify_ciphertext(PubKey, {U, V, W}) of
@@ -69,7 +68,7 @@ verify_share(PubKey, {Index, Share}, {U, V, W}) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% SCvk(C,{Di}i∈Φ):
--spec combine_shares(pubkey(), encrypted(), [tpke_privkey:share(), ...]) -> binary() | undefined.
+-spec combine_shares(pubkey(), ciphertext(), [tpke_privkey:share(), ...]) -> binary() | undefined.
 combine_shares(PubKey, {U, V, W}, Shares) ->
     {Indices, _} = lists:unzip(Shares),
     Set = ordsets:from_list(Indices),
