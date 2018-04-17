@@ -90,7 +90,7 @@ combine_shares(PubKey, {U, V, W}, Shares) ->
 
 %% Section 3.1 Boldyreva
 %% Decisional Diffie-Hellman (DDH) problem.
--spec verify_signature_share(pubkey(), tpke_privkey:share(), binary()) -> boolean().
+-spec verify_signature_share(pubkey(), tpke_privkey:share(), erlang_pbc:element()) -> boolean().
 verify_signature_share(PubKey, {Index, Share}, HM) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
     Y = lists:nth(Index+1, PubKey#pubkey.verification_keys),
@@ -101,7 +101,7 @@ verify_signature_share(PubKey, {Index, Share}, HM) ->
 
 %% Section 3.2 Boldyrevya
 %% V(pk,M,σ) :
--spec verify_signature(pubkey(), erlang_pbc:element(), binary()) -> boolean().
+-spec verify_signature(pubkey(), erlang_pbc:element(), erlang_pbc:element()) -> boolean().
 verify_signature(PubKey, Signature, H) ->
     %% VDDH(g,y,H(M),σ)
     %% VDDH(g,pkL,H(M),σ)

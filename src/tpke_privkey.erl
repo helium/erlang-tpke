@@ -34,7 +34,7 @@ decrypt_share(PrivKey, {U, V, W}) ->
 
 %% Section 5.2 Boldyrevya
 %% MS
--spec sign(privkey(), binary()) -> share().
+-spec sign(privkey(), erlang_pbc:element()) -> share().
 sign(PrivKey, H) ->
     %% σj←H(M)^xj
     %% Note that H(M) has already been computed here
