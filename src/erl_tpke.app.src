@@ -3,7 +3,8 @@
   {vsn, "0.1.0"},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    erlang_pbc
    ]},
   {env,[]},
 
