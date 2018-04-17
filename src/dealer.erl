@@ -6,8 +6,8 @@
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(state, {
-          pubkey :: tpke_pubkey:pubkey(),
-          privkeys :: [tpke_privkey:privkey(), ...],
+          pubkey :: undefined | tpke_pubkey:pubkey(),
+          privkeys :: undefined | [tpke_privkey:privkey(), ...],
           group :: erlang_pbc:group(),
           players :: non_neg_integer(),
           adversaries :: non_neg_integer()
