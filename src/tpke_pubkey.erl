@@ -137,7 +137,7 @@ deserialize_element(PubKey, Binary) when is_binary(Binary) ->
     erlang_pbc:binary_to_element(PubKey#pubkey.verification_key, Binary).
 
 
--spec lagrange(pubkey(), ordsets:set(non_neg_integer()), non_neg_integer()) -> erlang_pbc:element().
+-spec lagrange(pubkey(), ordsets:ordset(non_neg_integer()), non_neg_integer()) -> erlang_pbc:element().
 lagrange(PubKey, Set, Index) ->
     true = ordsets:is_set(Set),
     %true = PubKey#pubkey.k == ordsets:size(Set),
