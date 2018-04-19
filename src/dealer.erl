@@ -10,6 +10,7 @@
           privkeys :: undefined | [tpke_privkey:privkey(), ...],
           group :: erlang_pbc:group(),
           players :: non_neg_integer(),
+          curve :: tpke_pubkey:curve(),
           adversaries :: non_neg_integer()
          }).
 
@@ -21,7 +22,7 @@ start_link(Players, Adversaries, Curve) ->
 
 init([Players, Adversaries, Curve]) ->
     Group = erlang_pbc:group_new(Curve),
-    {ok, #state{players=Players, adversaries=Adversaries, group=Group}}.
+    {ok, #state{players=Players, adversaries=Adversaries, group=Group, curve=Curve}}.
 
 deal() ->
     gen_server:call(?MODULE, deal).
@@ -34,7 +35,7 @@ adversaries() ->
 
 handle_call(adversaries, _From, #state{adversaries=Adversaries}=State) -> {reply, {ok, Adversaries}, State};
 handle_call(group, _From, #state{group=Group}=State) -> {reply, {ok, Group}, State};
-handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Players}=State) ->
+handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Players, curve=Curve}=State) ->
     Element = erlang_pbc:element_new('Zr', Group),
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, Adversaries)],
     MasterSecret = hd(Coefficients),
@@ -49,7 +50,7 @@ handle_call(deal, _From, #state{group=Group, adversaries=Adversaries, players=Pl
     erlang_pbc:element_pp_init(G2),
     VerificationKey = erlang_pbc:element_pow(G2, MasterSecret),
     VerificationKeys = [erlang_pbc:element_pow(G2, SecretKeyShare) || SecretKeyShare <- MasterSecretKeyShares],
-    PublicKey = tpke_pubkey:init(Players, Adversaries, G1, G2, VerificationKey, VerificationKeys),
+    PublicKey = tpke_pubkey:init(Players, Adversaries, G1, G2, VerificationKey, VerificationKeys, Curve),
     PrivateKeys = [tpke_privkey:init(PublicKey, SKShare, Index) || {Index, SKShare} <- enumerate(MasterSecretKeyShares)],
     {reply, {ok, PublicKey, PrivateKeys}, State#state{pubkey=PublicKey, privkeys=PrivateKeys}}.
 
