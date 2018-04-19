@@ -174,3 +174,25 @@ xor_bin(<<>>, <<>>, Acc) ->
     list_to_binary(lists:reverse(Acc));
 xor_bin(<<A:8/integer-unsigned, T1/binary>>, <<B:8/integer-unsigned, T2/binary>>, Acc) ->
     xor_bin(T1, T2, [A bxor B | Acc]).
+
+-spec serialize(pubkey()) -> pubkey_serialized().
+serialize(#pubkey{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_key=VK, verification_keys=VKs}) ->
+    #pubkey_serialized{players=Players,
+                       k=K,
+                       curve=Curve,
+                       g1=erlang_pbc:element_to_binary(G1),
+                       g2=erlang_pbc:element_to_binary(G2),
+                       verification_key=erlang_pbc:element_to_binary(VK),
+                       verification_keys=[erlang_pbc:element_to_binary(V) || V <- VKs]}.
+
+-spec deserialize(pubkey_serialized()) -> pubkey().
+deserialize(#pubkey_serialized{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_key=VK, verification_keys=VKs}) ->
+    Group = erlang_pbc:group_new(Curve),
+    Element = erlang_pbc:element_new('G1', Group),
+    #pubkey_serialized{players=Players,
+                       k=K,
+                       curve=Curve,
+                       g1=erlang_pbc:binary_to_element(Element, G1),
+                       g2=erlang_pbc:binary_to_element(Element, G2),
+                       verification_key=erlang_pbc:binary_to_element(Element, VK),
+                       verification_keys=[erlang_pbc:binary_to_element(Element, V) || V <- VKs]}.
