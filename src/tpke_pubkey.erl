@@ -7,7 +7,7 @@
 -type pubkey_serialized() :: #pubkey_serialized{}.
 -type ciphertext() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
 
--export_type([pubkey/0, ciphertext/0, curve/0]).
+-export_type([pubkey/0, ciphertext/0, curve/0, pubkey_serialized/0]).
 -export([init/7, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2, serialize/1, deserialize/1]).
 
 -export([hashH/2]).
@@ -189,10 +189,10 @@ serialize(#pubkey{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_
 deserialize(#pubkey_serialized{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_key=VK, verification_keys=VKs}) ->
     Group = erlang_pbc:group_new(Curve),
     Element = erlang_pbc:element_new('G1', Group),
-    #pubkey_serialized{players=Players,
-                       k=K,
-                       curve=Curve,
-                       g1=erlang_pbc:binary_to_element(Element, G1),
-                       g2=erlang_pbc:binary_to_element(Element, G2),
-                       verification_key=erlang_pbc:binary_to_element(Element, VK),
-                       verification_keys=[erlang_pbc:binary_to_element(Element, V) || V <- VKs]}.
+    #pubkey{players=Players,
+            k=K,
+            curve=Curve,
+            g1=erlang_pbc:binary_to_element(Element, G1),
+            g2=erlang_pbc:binary_to_element(Element, G2),
+            verification_key=erlang_pbc:binary_to_element(Element, VK),
+            verification_keys=[erlang_pbc:binary_to_element(Element, V) || V <- VKs]}.
