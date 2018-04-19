@@ -1,26 +1,21 @@
 -module(tpke_pubkey).
 
--record(pubkey, {
-          players :: pos_integer(),
-          k :: non_neg_integer(),
-          g1 :: erlang_pbc:element(),
-          g2 :: erlang_pbc:element(),
-          verification_key :: erlang_pbc:element(),
-          verification_keys :: [erlang_pbc:element(), ...]
-         }).
+-include("src/tpke_pubkey.hrl").
 
+-type curve() :: 'SS512' | 'MNT159' | 'MNT224'.
 -type pubkey() :: #pubkey{}.
+-type pubkey_serialized() :: #pubkey_serialized{}.
 -type ciphertext() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
 
--export_type([pubkey/0, ciphertext/0]).
--export([init/6, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2]).
+-export_type([pubkey/0, ciphertext/0, curve/0, pubkey_serialized/0]).
+-export([init/7, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2, serialize/1, deserialize/1]).
 
 -export([hashH/2]).
 
 %% Note: K can be 0 here, meaning every player is honest.
--spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...]) -> pubkey().
-init(Players, K, G1, G2, VK, VKs) ->
-    #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs, g1=G1, g2=G2}.
+-spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...], curve()) -> pubkey().
+init(Players, K, G1, G2, VK, VKs, Curve) ->
+    #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs, g1=G1, g2=G2, curve=Curve}.
 
 %% Section 3.2.2 Baek and Zheng
 %% Epk(m):
@@ -179,3 +174,25 @@ xor_bin(<<>>, <<>>, Acc) ->
     list_to_binary(lists:reverse(Acc));
 xor_bin(<<A:8/integer-unsigned, T1/binary>>, <<B:8/integer-unsigned, T2/binary>>, Acc) ->
     xor_bin(T1, T2, [A bxor B | Acc]).
+
+-spec serialize(pubkey()) -> pubkey_serialized().
+serialize(#pubkey{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_key=VK, verification_keys=VKs}) ->
+    #pubkey_serialized{players=Players,
+                       k=K,
+                       curve=Curve,
+                       g1=erlang_pbc:element_to_binary(G1),
+                       g2=erlang_pbc:element_to_binary(G2),
+                       verification_key=erlang_pbc:element_to_binary(VK),
+                       verification_keys=[erlang_pbc:element_to_binary(V) || V <- VKs]}.
+
+-spec deserialize(pubkey_serialized()) -> pubkey().
+deserialize(#pubkey_serialized{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_key=VK, verification_keys=VKs}) ->
+    Group = erlang_pbc:group_new(Curve),
+    Element = erlang_pbc:element_new('G1', Group),
+    #pubkey{players=Players,
+            k=K,
+            curve=Curve,
+            g1=erlang_pbc:binary_to_element(Element, G1),
+            g2=erlang_pbc:binary_to_element(Element, G2),
+            verification_key=erlang_pbc:binary_to_element(Element, VK),
+            verification_keys=[erlang_pbc:binary_to_element(Element, V) || V <- VKs]}.
