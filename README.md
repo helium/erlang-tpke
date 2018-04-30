@@ -1,6 +1,8 @@
 erlang_tpke
 =====
 
+[![Build Status](https://travis-ci.org/helium/erlang-tpke.svg?branch=master)](https://travis-ci.org/helium/erlang-tpke)
+
 Erlang implementation of TPKE
 
 Build
