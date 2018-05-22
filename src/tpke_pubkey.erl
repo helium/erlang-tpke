@@ -123,7 +123,7 @@ combine_signature_shares(PubKey, Shares, {U, V, W}) ->
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
     true = ordsets:is_subset(Set, MySet),
 
-    %% TODO for robustness we should verify each share before combining them
+    %% for robustness we verify each share before combining them
     lists:all(fun({Index, Share}) -> verify_share(PubKey, {Index, Share}, {U, V, W}) end, Shares),
 
     %% pkL= Πj∈J(pkj) =Πj∈J(gxj)
