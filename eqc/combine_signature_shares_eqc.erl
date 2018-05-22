@@ -18,7 +18,9 @@ prop_combine_signature_shares() ->
                     _ ->
                         PrivateKeys
                 end,
-                MessageToSign = tpke_pubkey:hash_message(PubKey, crypto:hash(sha256, crypto:strong_rand_bytes(12))),
+                Msg = crypto:hash(sha256, crypto:strong_rand_bytes(12)),
+                CipherText = tpke_pubkey:encrypt(PubKey, Msg),
+                MessageToSign = tpke_pubkey:hash_message(PubKey, Msg),
                 FailMessage = case Fail of
                                   wrong_message ->
                                       tpke_pubkey:hash_message(PubKey, crypto:hash(sha256, crypto:strong_rand_bytes(12)));
@@ -37,7 +39,7 @@ prop_combine_signature_shares() ->
                                  %% either wrong_message or wrong_key
                                  dealer:random_n(K-1, Signatures) ++ dealer:random_n(1, FailSignatures)
                          end,
-                Sig = tpke_pubkey:combine_signature_shares(PubKey, Shares),
+                Sig = tpke_pubkey:combine_signature_shares(PubKey, Shares, CipherText),
                 gen_server:stop(dealer),
                 SharesVerified = lists:all(fun(X) -> X end, [tpke_pubkey:verify_signature_share(PubKey, Share, MessageToSign) || Share <- Shares]),
                 SignatureVerified = tpke_pubkey:verify_signature(PubKey, Sig, MessageToSign),

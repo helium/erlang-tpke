@@ -8,7 +8,19 @@
 -type ciphertext() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
 
 -export_type([pubkey/0, ciphertext/0, curve/0, pubkey_serialized/0]).
--export([init/7, lagrange/3, encrypt/2, verify_ciphertext/2, verify_share/3, combine_shares/3, hash_message/2, verify_signature/3, combine_signature_shares/2, verify_signature_share/3, deserialize_element/2, serialize/1, deserialize/1]).
+-export([init/7,
+         lagrange/3,
+         encrypt/2,
+         verify_ciphertext/2,
+         verify_share/3,
+         combine_shares/3,
+         hash_message/2,
+         verify_signature/3,
+         combine_signature_shares/3,
+         verify_signature_share/3,
+         deserialize_element/2,
+         serialize/1,
+         deserialize/1]).
 
 -export([hashH/2]).
 
@@ -104,14 +116,15 @@ verify_signature(PubKey, Signature, H) ->
     B = erlang_pbc:element_pairing(H, PubKey#pubkey.verification_key),
     erlang_pbc:element_cmp(A, B).
 
--spec combine_signature_shares(pubkey(), [tpke_privkey:share(), ...]) -> erlang_pbc:element().
-combine_signature_shares(PubKey, Shares) ->
+-spec combine_signature_shares(pubkey(), [tpke_privkey:share(), ...], ciphertext()) -> erlang_pbc:element().
+combine_signature_shares(PubKey, Shares, {U, V, W}) ->
     {Indices, _} = lists:unzip(Shares),
     Set = ordsets:from_list(Indices),
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
     true = ordsets:is_subset(Set, MySet),
 
     %% TODO for robustness we should verify each share before combining them
+    lists:all(fun({Index, Share}) -> verify_share(PubKey, {Index, Share}, {U, V, W}) end, Shares),
 
     %% pkL= Πj∈J(pkj) =Πj∈J(gxj)
     Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, Set, Index)) || {Index, Share} <- Shares],
