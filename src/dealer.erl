@@ -2,7 +2,7 @@
 
 -behavior(gen_server).
 
--export([start_link/0, share_secret/2, start_link/3, adversaries/0, group/0, deal/0, random_n/2, shuffle/1]).
+-export([start_link/0, share_secret/2, start_link/3, adversaries/1, group/1, deal/1, random_n/2, shuffle/1]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -record(state, {
@@ -18,20 +18,20 @@ start_link() ->
     start_link(10, 5, 'SS512').
 
 start_link(Players, Adversaries, Curve) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Players, Adversaries, Curve], []).
+    gen_server:start_link(?MODULE, [Players, Adversaries, Curve], []).
 
 init([Players, Adversaries, Curve]) ->
     Group = erlang_pbc:group_new(Curve),
     {ok, #state{players=Players, adversaries=Adversaries, group=Group, curve=Curve}}.
 
-deal() ->
-    gen_server:call(?MODULE, deal).
+deal(Pid) ->
+    gen_server:call(Pid, deal).
 
-group() ->
-    gen_server:call(?MODULE, group).
+group(Pid) ->
+    gen_server:call(Pid, group).
 
-adversaries() ->
-    gen_server:call(?MODULE, adversaries).
+adversaries(Pid) ->
+    gen_server:call(Pid, adversaries).
 
 handle_call(adversaries, _From, #state{adversaries=Adversaries}=State) -> {reply, {ok, Adversaries}, State};
 handle_call(group, _From, #state{group=Group}=State) -> {reply, {ok, Group}, State};
