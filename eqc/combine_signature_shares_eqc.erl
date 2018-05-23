@@ -19,7 +19,6 @@ prop_combine_signature_shares() ->
                         PrivateKeys
                 end,
                 Msg = crypto:hash(sha256, crypto:strong_rand_bytes(12)),
-                CipherText = tpke_pubkey:encrypt(PubKey, Msg),
                 MessageToSign = tpke_pubkey:hash_message(PubKey, Msg),
                 FailMessage = case Fail of
                                   wrong_message ->
@@ -39,10 +38,17 @@ prop_combine_signature_shares() ->
                                  %% either wrong_message or wrong_key
                                  dealer:random_n(K-1, Signatures) ++ dealer:random_n(1, FailSignatures)
                          end,
-                Sig = tpke_pubkey:combine_signature_shares(PubKey, Shares, CipherText),
+
+                SignatureVerified = case Fail of
+                                        _ when Fail == none orelse Fail == duplicate_shares ->
+                                            {ok, Sig} = tpke_pubkey:combine_signature_shares(PubKey, Shares, MessageToSign),
+                                            tpke_pubkey:verify_signature(PubKey, Sig, MessageToSign);
+                                        _ ->
+                                            not ({error, bad_signature_share} == tpke_pubkey:combine_signature_shares(PubKey, Shares, MessageToSign))
+                                    end,
+
                 gen_server:stop(dealer),
                 SharesVerified = lists:all(fun(X) -> X end, [tpke_pubkey:verify_signature_share(PubKey, Share, MessageToSign) || Share <- Shares]),
-                SignatureVerified = tpke_pubkey:verify_signature(PubKey, Sig, MessageToSign),
                 ?WHENFAIL(begin
                               io:format("Signatures ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Signatures]]),
                               io:format("Shares ~p~n", [[ erlang_pbc:element_to_string(S) || {_, S} <- Shares]])
