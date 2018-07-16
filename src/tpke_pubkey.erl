@@ -17,6 +17,7 @@
          hash_message/2,
          verify_signature/3,
          combine_signature_shares/3,
+         combine_verified_signature_shares/2,
          verify_signature_share/3,
          deserialize_element/2,
          serialize/1,
@@ -27,6 +28,7 @@
 %% Note: K can be 0 here, meaning every player is honest.
 -spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...], curve()) -> pubkey().
 init(Players, K, G1, G2, VK, VKs, Curve) ->
+    erlang_pbc:pairing_pp_init(G1),
     #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs, g1=G1, g2=G2, curve=Curve}.
 
 %% Section 3.2.2 Baek and Zheng
@@ -132,16 +134,34 @@ combine_signature_shares(PubKey, Shares, HM) ->
             Res = lists:foldl(fun(E, Acc) ->
                                       erlang_pbc:element_mul(E, Acc)
                               end, hd(Bleh), tl(Bleh)),
+            erlang_pbc:pairing_pp_init(Res),
             {ok, Res};
         false ->
             {error, bad_signature_share}
     end.
+
+%% if you've verified the shares as you've received them and don't need/want to reverify them
+-spec combine_verified_signature_shares(pubkey(), [tpke_privkey:share(), ...]) -> {ok, erlang_pbc:element()}.
+combine_verified_signature_shares(PubKey, Shares) ->
+    {Indices, _} = lists:unzip(Shares),
+    Set = ordsets:from_list(Indices),
+    MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
+    true = ordsets:is_subset(Set, MySet),
+
+    %% pkL= Πj∈J(pkj) =Πj∈J(gxj)
+    Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, Set, Index)) || {Index, Share} <- Shares],
+    Res = lists:foldl(fun(E, Acc) ->
+                              erlang_pbc:element_mul(E, Acc)
+                      end, hd(Bleh), tl(Bleh)),
+    erlang_pbc:pairing_pp_init(Res),
+    {ok, Res}.
 
 %% H(M)
 -spec hash_message(pubkey(), binary()) -> erlang_pbc:element().
 hash_message(PubKey, Msg) ->
     Res = erlang_pbc:element_from_hash(erlang_pbc:element_new('G1', PubKey#pubkey.verification_key), Msg),
     erlang_pbc:element_pp_init(Res),
+    erlang_pbc:pairing_pp_init(Res),
     Res.
 
 
