@@ -10,21 +10,19 @@ all() ->
     [threshold_decrypt_test].
 
 init_per_testcase(_, Config) ->
-    D1 = dealer:start_link(10, 5, 'SS512'),
-    D2 = dealer:start_link(100, 30, 'SS512'),
+    D1 = dealer:new(10, 5, 'SS512'),
+    D2 = dealer:new(100, 30, 'SS512'),
     [ {dealers, [D1, D2]} | Config ].
 
-end_per_testcase(_, Config) ->
-    Dealers = proplists:get_value(dealers, Config),
-    lists:foreach(fun({ok, Dealer}) -> gen_server:stop(Dealer) end, Dealers),
+end_per_testcase(_, _Config) ->
     ok.
 
 threshold_decrypt_test(Config) ->
     Dealers = proplists:get_value(dealers, Config),
     lists:foreach(fun({ok, Dealer}) ->
                           {ok, _Group} = dealer:group(Dealer),
-                          {ok, PubKey, PrivateKeys} = dealer:deal(Dealer),
-                          {ok, K} = dealer:adversaries(Dealer),
+                          {ok, {PubKey, PrivateKeys}} = dealer:deal(Dealer),
+                          {ok, K} = dealer:threshold(Dealer),
                           Message = crypto:hash(sha256, <<"my hovercraft is full of eels">>),
                           CipherText = tpke_pubkey:encrypt(PubKey, Message),
                           %% verify ciphertext

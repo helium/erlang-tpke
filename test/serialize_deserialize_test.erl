@@ -4,9 +4,9 @@
 -include("../src/tpke_privkey.hrl").
 
 simple_test() ->
-    {ok, Dealer} = dealer:start_link(),
+    {ok, Dealer} = dealer:new(),
     {ok, _Group} = dealer:group(Dealer),
-    {ok, PubKey, PrivateKeys} = dealer:deal(Dealer),
+    {ok, {PubKey, PrivateKeys}} = dealer:deal(Dealer),
 
     SerializedPubKey = tpke_pubkey:serialize(PubKey),
     SerializedPvtKeys = [tpke_privkey:serialize(PK) || PK <- PrivateKeys],

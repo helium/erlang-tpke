@@ -10,17 +10,15 @@ all() ->
     [first_secret_equality_test, zero_reconstruction_test].
 
 init_per_testcase(_, Config) ->
-    {ok, Dealer} = dealer:start_link(),
+    {ok, Dealer} = dealer:new(),
     {ok, Group} = dealer:group(Dealer),
-    {ok, PubKey, PrivateKeys} = dealer:deal(Dealer),
+    {ok, {PubKey, PrivateKeys}} = dealer:deal(Dealer),
     Element = erlang_pbc:element_new('Zr', Group),
     K = 5,
     Coefficients = [erlang_pbc:element_random(Element) || _ <- lists:seq(1, K)],
     [ {dealer, Dealer}, {group, Group}, {pubkey, PubKey}, {privkeys, PrivateKeys}, {element, Element}, {k, K}, {coefficients, Coefficients} | Config ].
 
-end_per_testcase(_, Config) ->
-    Dealer = proplists:get_value(dealer, Config),
-    gen_server:stop(Dealer),
+end_per_testcase(_, _Config) ->
     ok.
 
 zero_reconstruction_test(Config) ->

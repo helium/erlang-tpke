@@ -11,21 +11,19 @@ all() ->
 
 init_per_testcase(_, Config) ->
     Curves = [ 'SS512', 'MNT224', 'MNT159'],
-    LowDealers = [ dealer:start_link(10, 5, Curve) || Curve <- Curves ],
-    HighDealers = [ dealer:start_link(100, 30, Curve) || Curve <- Curves ],
+    LowDealers = [ dealer:new(10, 5, Curve) || Curve <- Curves ],
+    HighDealers = [ dealer:new(100, 30, Curve) || Curve <- Curves ],
     [ {dealers, LowDealers ++ HighDealers} | Config ].
 
-end_per_testcase(_, Config) ->
-    Dealers = proplists:get_value(dealers, Config),
-    lists:foreach(fun({ok, Dealer}) -> gen_server:stop(Dealer) end, Dealers),
+end_per_testcase(_, _Config) ->
     ok.
 
 threshold_signatures_test(Config) ->
     Dealers = proplists:get_value(dealers, Config),
     lists:foreach(fun({ok, Dealer}) ->
-                          {ok, K} = dealer:adversaries(Dealer),
+                          {ok, K} = dealer:threshold(Dealer),
                           {ok, _Group} = dealer:group(Dealer),
-                          {ok, PubKey, PrivateKeys} = dealer:deal(Dealer),
+                          {ok, {PubKey, PrivateKeys}} = dealer:deal(Dealer),
                           Msg = crypto:hash(sha256, crypto:strong_rand_bytes(12)),
                           MessageToSign = tpke_pubkey:hash_message(PubKey, Msg),
                           Signatures = [ tpke_privkey:sign(PrivKey, MessageToSign) || PrivKey <- PrivateKeys],

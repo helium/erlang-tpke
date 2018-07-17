@@ -7,14 +7,15 @@
 prop_decrypt_shares() ->
     ?FORALL({{Players, Threshold}, Curve, Fail}, {gen_players_threshold(), gen_curve(), gen_failure_mode()},
             begin
-                {ok, _} = dealer:start_link(Players, Threshold, Curve),
-                {ok, K} = dealer:adversaries(),
-                {ok, _Group} = dealer:group(),
-                {ok, PubKey, PrivateKeys} = dealer:deal(),
+                {ok, Dealer} = dealer:new(Players, Threshold, Curve),
+                {ok, K} = dealer:threshold(Dealer),
+                {ok, _Group} = dealer:group(Dealer),
+                {ok, {PubKey, PrivateKeys}} = dealer:deal(Dealer),
 
                 {FailPubKey, FailPKeys} = case Fail of
                                               wrong_key ->
-                                                  {ok, FPk, PKs} = dealer:deal(),
+                                                  {ok, NewDealer} = dealer:new(Players, Threshold, Curve),
+                                                  {ok, FPk, PKs} = dealer:deal(NewDealer),
                                                   {FPk, PKs};
                                               _ ->
                                                   {PubKey, PrivateKeys}
@@ -50,9 +51,6 @@ prop_decrypt_shares() ->
                                  %% either wrong_message or wrong_key
                                  dealer:random_n(K-1, GoodShares) ++ dealer:random_n(1, FailShares)
                          end,
-
-
-                gen_server:stop(dealer),
 
                 VerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, CipherText),
                 FailVerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, FailCipherText),
