@@ -11,3 +11,6 @@ rel/example_project
 _build
 .rebar3/
 *.crashdump
+.eqc
+current_counterexample.eqc
+.eqc-info
