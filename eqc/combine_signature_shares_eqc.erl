@@ -13,8 +13,7 @@ prop_combine_signature_shares() ->
                 {ok, {PubKey, PrivateKeys}} = dealer:deal(Dealer),
                 FailPKeys = case Fail of
                                 wrong_key ->
-                                    {ok, NewDealer} = dealer:new(Players, Threshold, Curve),
-                                    {ok, _, PKs} = dealer:deal(NewDealer),
+                                    {ok, {_, PKs}} = dealer:deal(Dealer),
                                     PKs;
                                 _ ->
                                     PrivateKeys

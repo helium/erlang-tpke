@@ -14,8 +14,7 @@ prop_decrypt_shares() ->
 
                 {FailPubKey, FailPKeys} = case Fail of
                                               wrong_key ->
-                                                  {ok, NewDealer} = dealer:new(Players, Threshold, Curve),
-                                                  {ok, FPk, PKs} = dealer:deal(NewDealer),
+                                                  {ok, {FPk, PKs}} = dealer:deal(Dealer),
                                                   {FPk, PKs};
                                               _ ->
                                                   {PubKey, PrivateKeys}
