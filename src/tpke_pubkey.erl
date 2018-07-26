@@ -29,6 +29,7 @@
 -spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...], curve()) -> pubkey().
 init(Players, K, G1, G2, VK, VKs, Curve) ->
     erlang_pbc:pairing_pp_init(G1),
+    erlang_pbc:element_pp_init(G1),
     #pubkey{players=Players, k=K, verification_key=VK, verification_keys=VKs, g1=G1, g2=G2, curve=Curve}.
 
 %% Section 3.2.2 Baek and Zheng
