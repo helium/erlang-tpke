@@ -14,7 +14,7 @@
 
 -opaque privkey() :: #privkey{}.
 -opaque privkey_serialized() :: #privkey_serialized{}.
--type share() :: {non_neg_integer(), erlang_pbc:element()}.
+-type share() :: {non_neg_integer(), erlang_pbc:element() | '?'}.
 
 -export_type([privkey/0, share/0, privkey_serialized/0]).
 
