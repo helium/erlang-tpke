@@ -38,6 +38,7 @@
          combine_verified_signature_shares/2,
          verify_signature_share/3,
          deserialize_element/2,
+         verification_key/1,
          serialize/1,
          deserialize/1]).
 
@@ -231,6 +232,10 @@ xor_bin(<<>>, <<>>, Acc) ->
     list_to_binary(lists:reverse(Acc));
 xor_bin(<<A:8/integer-unsigned, T1/binary>>, <<B:8/integer-unsigned, T2/binary>>, Acc) ->
     xor_bin(T1, T2, [A bxor B | Acc]).
+
+-spec verification_key(pubkey()) -> erlang_pbc:element().
+verification_key(Pubkey) ->
+    Pubkey#pubkey.verification_key.
 
 -spec serialize(pubkey()) -> pubkey_serialized().
 serialize(#pubkey{players=Players, k=K, curve=Curve, g1=G1, g2=G2, verification_key=VK, verification_keys=VKs}) ->
