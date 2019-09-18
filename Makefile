@@ -15,6 +15,6 @@ typecheck:
 	$(REBAR) dialyzer
 
 ci:
-	$(REBAR) do dialyzer,xref && $(REBAR) as test do eunit,ct,cover
+	$(REBAR) do dialyzer && $(REBAR) as test do eunit,ct,cover
 	$(REBAR) covertool generate
 	codecov --required -f _build/test/covertool/erlang_tpke.covertool.xml
