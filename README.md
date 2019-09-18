@@ -1,7 +1,8 @@
 erlang_tpke
 =====
 
-[![Build Status](https://travis-ci.org/helium/erlang-tpke.svg?branch=master)](https://travis-ci.org/helium/erlang-tpke)
+[![Build status](https://badge.buildkite.com/ca315be0989cf1202c6269fa0cd4d2979d39338b68564d6d26.svg)](https://buildkite.com/helium/erlang-tpke)
+[![codecov](https://codecov.io/gh/helium/erlang-tpke/branch/master/graph/badge.svg)](https://codecov.io/gh/helium/erlang-tpke)
 
 Erlang implementation of TPKE
 
