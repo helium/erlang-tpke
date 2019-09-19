@@ -15,10 +15,12 @@ typecheck:
 	$(REBAR) dialyzer
 
 ci:
-ifdef NIGHTLY
-	$(REBAR) as test do eunit,ct,eqc -t 600,cover
-else
 	$(REBAR) do dialyzer && $(REBAR) as test do eunit,ct,cover
-endif
+	$(REBAR) covertool generate
+	codecov --required -f _build/test/covertool/erlang_tpke.covertool.xml
+
+ci-nightly:
+	$(REBAR) as test do eunit,ct,eqc -t 1800,cover
+	$(REBAR) do dialyzer && $(REBAR) as test do eunit,ct,cover
 	$(REBAR) covertool generate
 	codecov --required -f _build/test/covertool/erlang_tpke.covertool.xml
