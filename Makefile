@@ -21,6 +21,6 @@ ci:
 
 ci-nightly:
 	$(REBAR) as test do eunit,ct,eqc -t 1800,cover
-	$(REBAR) do dialyzer && $(REBAR) as test do eunit,ct,cover
+	cp _build/eqc/cover/eqc.coverdata _build/test/cover/
 	$(REBAR) covertool generate
 	codecov --required -f _build/test/covertool/erlang_tpke.covertool.xml
