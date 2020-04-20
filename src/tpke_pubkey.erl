@@ -75,7 +75,8 @@ verify_ciphertext(PubKey, {U, V, W}) ->
     %% H = H(U, V)
     H = hashH(U, V),
     %% check if ˆe(P, W) = ˆe(U, H)
-    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g1, W), erlang_pbc:element_pairing(U, H)).
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g1, W),
+                           erlang_pbc:element_pairing(U, H)).
 
 %% Section 3.2.2 Baek and Zheng
 %% Vvk(C, Di):
@@ -88,7 +89,8 @@ verify_share(PubKey, {Index, Share}, {U, V, W}) ->
         true ->
             %% check if ˆe(P, Ui) = ˆe(U, Yi).
             Yi = lists:nth(Index+1, PubKey#pubkey.verification_keys),
-            erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share), erlang_pbc:element_pairing(U, Yi));
+            erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share),
+                                   erlang_pbc:element_pairing(U, Yi));
         false when Share == '?' ->
             true;
         false ->
@@ -126,7 +128,8 @@ verify_signature_share(PubKey, {Index, Share}, HM) ->
     %% In order to verify the validity of a candidate signature σ of a messageM,
     %% a verifier simply checks whether (g,y,H(M),σ) is a valid Diffie-Hellman tuple.
     %% Given (g,g^x,g^y,g^z) it is possible to check z=xy if e(g,g^z) == e(g^x,g^y)
-    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share), erlang_pbc:element_pairing(Y, HM)).
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share),
+                           erlang_pbc:element_pairing(Y, HM)).
 
 %% Section 3.2 Boldyrevya
 %% V(pk,M,σ) :
