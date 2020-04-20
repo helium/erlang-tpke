@@ -34,10 +34,10 @@ prop_decrypt_shares() ->
                 GoodShares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
 
                 FailShares = case Fail of
-                                 wrong_message ->
-                                     [ tpke_privkey:decrypt_share(SK, FailCipherText) || SK <- FailPKeys ];
+                                 wrong_key ->
+                                     [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- FailPKeys ];
                                  _ ->
-                                     [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- FailPKeys ]
+                                     [ tpke_privkey:decrypt_share(SK, FailCipherText) || SK <- FailPKeys ]
                              end,
 
                 Shares = case Fail of
@@ -57,7 +57,9 @@ prop_decrypt_shares() ->
                 VerifiedCombinedShares = tpke_pubkey:combine_shares(PubKey, CipherText, Shares),
 
                 ?WHENFAIL(begin
-                              io:format("Shares ~p~n", [Shares])
+                              io:format("K ~p~n", [K]),
+                              io:format("Shares ~p~n", [Shares]),
+                              io:format("FailShares ~p~n", [FailShares])
                           end,
                           conjunction([
                                        {verify_ciphertext, VerifiedCipherText},

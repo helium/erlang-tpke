@@ -42,8 +42,6 @@
          serialize/1,
          deserialize/1]).
 
--export([hashH/2]).
-
 %% Note: K can be 0 here, meaning every player is honest.
 -spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...], curve()) -> pubkey().
 init(Players, K, G1, G2, VK, VKs, Curve) ->
@@ -75,47 +73,34 @@ verify_ciphertext(PubKey, {U, V, W}) ->
     %% H = H(U, V)
     H = hashH(U, V),
     %% check if ˆe(P, W) = ˆe(U, H)
-    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g1, W), erlang_pbc:element_pairing(U, H)).
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g1, W),
+                           erlang_pbc:element_pairing(U, H)).
 
 %% Section 3.2.2 Baek and Zheng
 %% Vvk(C, Di):
 -spec verify_share(pubkey(), tpke_privkey:share(), ciphertext()) -> boolean().
-verify_share(PubKey, {Index, Share}, {U, V, W}) ->
+verify_share(PubKey, {Index, Share}, {U, _V, _W}) ->
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
-    case verify_ciphertext(PubKey, {U, V, W}) of
-        true when Share == '?' ->
-            false;
-        true ->
-            %% check if ˆe(P, Ui) = ˆe(U, Yi).
-            Yi = lists:nth(Index+1, PubKey#pubkey.verification_keys),
-            erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share), erlang_pbc:element_pairing(U, Yi));
-        false when Share == '?' ->
-            true;
-        false ->
-            false
-    end.
+    %% check if ˆe(P, Ui) = ˆe(U, Yi).
+    Yi = lists:nth(Index+1, PubKey#pubkey.verification_keys),
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share),
+                           erlang_pbc:element_pairing(U, Yi)).
 
 %% Section 3.2.2 Baek and Zheng
 %% SCvk(C,{Di}i∈Φ):
 -spec combine_shares(pubkey(), ciphertext(), [tpke_privkey:share(), ...]) -> binary() | undefined.
-combine_shares(PubKey, {U, V, W}, Shares) ->
+combine_shares(PubKey, {_U, V, _W}, Shares) ->
     {Indices, _} = lists:unzip(Shares),
     Set = ordsets:from_list(Indices),
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
     true = ordsets:is_subset(Set, MySet),
 
-    case verify_ciphertext(PubKey, {U, V, W}) of
-        true ->
-            %% m=G(∑i∈ΦλΦ0iUi)⊕V
-            Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, Set, Index)) || {Index, Share} <- Shares, Share /= '?'],
-            Res = lists:foldl(fun(E, Acc) ->
+    %% m=G(∑i∈ΦλΦ0iUi)⊕V
+    Bleh = [ erlang_pbc:element_pow(Share, lagrange(PubKey, Set, Index)) || {Index, Share} <- Shares],
+    Res = lists:foldl(fun(E, Acc) ->
                               erlang_pbc:element_mul(Acc, E)
                       end, hd(Bleh), tl(Bleh)),
-            xor_bin(hashG(Res), V);
-        false ->
-            undefined
-    end.
-
+    xor_bin(hashG(Res), V).
 
 %% Section 3.1 Boldyreva
 %% Decisional Diffie-Hellman (DDH) problem.
@@ -126,7 +111,8 @@ verify_signature_share(PubKey, {Index, Share}, HM) ->
     %% In order to verify the validity of a candidate signature σ of a messageM,
     %% a verifier simply checks whether (g,y,H(M),σ) is a valid Diffie-Hellman tuple.
     %% Given (g,g^x,g^y,g^z) it is possible to check z=xy if e(g,g^z) == e(g^x,g^y)
-    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share), erlang_pbc:element_pairing(Y, HM)).
+    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g2, Share),
+                           erlang_pbc:element_pairing(Y, HM)).
 
 %% Section 3.2 Boldyrevya
 %% V(pk,M,σ) :
