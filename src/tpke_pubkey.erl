@@ -20,10 +20,18 @@
           verification_keys :: [binary(), ...]
          }).
 
+-record(ciphertext, {
+        u :: erlang_pbc:element(),
+        v :: <<_:256>>,
+        w :: erlang_pbc:element(),
+        g1 :: erlang_pbc:element() | undefined, %% g1 of the public key this ciphertext is valid with
+        verified = false :: boolean() %% whether we can trust this ciphertext has been verified
+         }).
+
 -type curve() :: 'SS512' | 'MNT159' | 'MNT224'.
 -type pubkey() :: #pubkey{}.
 -type pubkey_serialized() :: #pubkey_serialized{}.
--type ciphertext() :: {erlang_pbc:element(), binary(), erlang_pbc:element()}.
+-opaque ciphertext() :: #ciphertext{}.
 
 -export_type([pubkey/0, ciphertext/0, curve/0, pubkey_serialized/0]).
 -export([init/7,
@@ -40,7 +48,11 @@
          deserialize_element/2,
          verification_key/1,
          serialize/1,
-         deserialize/1]).
+         deserialize/1,
+         check_ciphertext/2,
+         ciphertext_to_binary/1,
+         binary_to_ciphertext/2
+        ]).
 
 %% Note: K can be 0 here, meaning every player is honest.
 -spec init(pos_integer(), non_neg_integer(), erlang_pbc:element(), erlang_pbc:element(), erlang_pbc:element(), [erlang_pbc:element(), ...], curve()) -> pubkey().
@@ -64,22 +76,28 @@ encrypt(PubKey, Message) when is_binary(Message) ->
     %% W = rH(U, V)
     W = erlang_pbc:element_mul(R, hashH(U, V)),
     %% ciphertext C = (U, V, W)
-    {U, V, W}.
+    #ciphertext{u=U, v=V, w=W}.
 
 %% Section 3.2.2 Baek and Zheng
 %% common code to verify ciphertext is valid
--spec verify_ciphertext(pubkey(), ciphertext()) -> boolean().
-verify_ciphertext(PubKey, {U, V, W}) ->
+-spec verify_ciphertext(pubkey(), ciphertext()) -> {ok, ciphertext()} | error.
+verify_ciphertext(PubKey, #ciphertext{u=U, v=V, w=W}=CipherText) ->
     %% H = H(U, V)
     H = hashH(U, V),
     %% check if ˆe(P, W) = ˆe(U, H)
-    erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g1, W),
-                           erlang_pbc:element_pairing(U, H)).
+    case erlang_pbc:element_cmp(erlang_pbc:element_pairing(PubKey#pubkey.g1, W),
+                                erlang_pbc:element_pairing(U, H)) of
+        true ->
+            {ok, CipherText#ciphertext{verified=true, g1=PubKey#pubkey.g1}};
+        false ->
+            error
+    end.
 
 %% Section 3.2.2 Baek and Zheng
 %% Vvk(C, Di):
 -spec verify_share(pubkey(), tpke_privkey:share(), ciphertext()) -> boolean().
-verify_share(PubKey, {Index, Share}, {U, _V, _W}) ->
+verify_share(PubKey, {Index, Share}, CipherText) ->
+    {U, _V, _W} = check_ciphertext(PubKey, CipherText),
     true = 0 =< Index andalso Index < PubKey#pubkey.players,
     %% check if ˆe(P, Ui) = ˆe(U, Yi).
     Yi = lists:nth(Index+1, PubKey#pubkey.verification_keys),
@@ -89,7 +107,8 @@ verify_share(PubKey, {Index, Share}, {U, _V, _W}) ->
 %% Section 3.2.2 Baek and Zheng
 %% SCvk(C,{Di}i∈Φ):
 -spec combine_shares(pubkey(), ciphertext(), [tpke_privkey:share(), ...]) -> binary() | undefined.
-combine_shares(PubKey, {_U, V, _W}, Shares) ->
+combine_shares(PubKey, CipherText, Shares) ->
+    {_U, V, _W} = check_ciphertext(PubKey, CipherText),
     {Indices, _} = lists:unzip(Shares),
     Set = ordsets:from_list(Indices),
     MySet = ordsets:from_list(lists:seq(0, PubKey#pubkey.players - 1)),
@@ -244,3 +263,33 @@ deserialize(#pubkey_serialized{players=Players, k=K, curve=Curve, g1=G1, g2=G2, 
             g2=erlang_pbc:binary_to_element(Element, G2),
             verification_key=erlang_pbc:binary_to_element(Element, VK),
             verification_keys=[erlang_pbc:binary_to_element(Element, V) || V <- VKs]}.
+
+-spec check_ciphertext(pubkey(), ciphertext()) -> {U::erlang_pbc:element(), V::<<_:256>>, W::erlang_pbc:element()}.
+check_ciphertext(_PubKey, #ciphertext{verified=false}) ->
+    erlang:error(unverified_ciphertext);
+check_ciphertext(#pubkey{g1=KG1}, #ciphertext{verified=true, g1=CG1, u=U, v=V, w=W}) ->
+    case erlang_pbc:element_cmp(CG1, KG1) of
+        true ->
+            {U, V, W};
+        false ->
+            erlang:error(inconsistent_ciphertext)
+    end.
+
+-spec ciphertext_to_binary(ciphertext()) -> binary().
+ciphertext_to_binary(#ciphertext{u=U, v=V, w=W}) ->
+    UBin = erlang_pbc:element_to_binary(U),
+    USize = byte_size(UBin),
+    WBin = erlang_pbc:element_to_binary(W),
+    WSize = byte_size(WBin),
+    <<USize:8/integer-unsigned, UBin:USize/binary, V:32/binary, WSize:8/integer-unsigned, WBin:WSize/binary>>.
+
+-spec binary_to_ciphertext(binary(), tpke_pubkey:pubkey()) -> ciphertext().
+binary_to_ciphertext(<<USize:8/integer-unsigned, UBin:USize/binary, V:32/binary, WSize:8/integer-unsigned, WBin:WSize/binary>>, PubKey) ->
+    U = tpke_pubkey:deserialize_element(PubKey, UBin),
+    W = tpke_pubkey:deserialize_element(PubKey, WBin),
+    case verify_ciphertext(PubKey, #ciphertext{u=U, v=V, w=W}) of
+        {ok, CipherText} ->
+            CipherText;
+        error ->
+            erlang:error(inconsistent_ciphertext)
+    end.

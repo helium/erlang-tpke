@@ -26,8 +26,9 @@ init(PubKey, SecretKey, SecretKeyIndex) ->
 
 %% Section 3.2.2 Baek and Zheng
 %% Dski(C):
--spec decrypt_share(privkey(), {erlang_pbc:element(), binary(), erlang_pbc:element()}) -> share().
-decrypt_share(PrivKey, {U, _V, _W}) ->
+-spec decrypt_share(privkey(), tpke_pubkey:ciphertext()) -> share().
+decrypt_share(PrivKey, CipherText) ->
+    {U, _V, _W} = tpke_pubkey:check_ciphertext(PrivKey#privkey.pubkey, CipherText),
     %% computes Ui = xiU
     Share = erlang_pbc:element_mul(PrivKey#privkey.secret_key, U),
     %% output Di = (i, Ui)

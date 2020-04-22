@@ -29,15 +29,22 @@ prop_decrypt_shares() ->
                               end,
 
                 CipherText = tpke_pubkey:encrypt(PubKey, Message),
+                {ok, VerifiedCipherText} = tpke_pubkey:verify_ciphertext(PubKey, CipherText),
                 FailCipherText = tpke_pubkey:encrypt(FailPubKey, FailMessage),
+                FailVerifiedCipherText = case tpke_pubkey:verify_ciphertext(PubKey, FailCipherText) of
+                                             {ok, _} -> true;
+                                             _ -> false
+                                         end,
 
-                GoodShares = [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- PrivateKeys ],
+                GoodShares = [ tpke_privkey:decrypt_share(SK, VerifiedCipherText) || SK <- PrivateKeys ],
 
                 FailShares = case Fail of
-                                 wrong_key ->
-                                     [ tpke_privkey:decrypt_share(SK, CipherText) || SK <- FailPKeys ];
+                                 wrong_message ->
+                                     {ok, FCS} = tpke_pubkey:verify_ciphertext(PubKey, FailCipherText),
+                                     [ tpke_privkey:decrypt_share(SK, FCS) || SK <- PrivateKeys ];
                                  _ ->
-                                     [ tpke_privkey:decrypt_share(SK, FailCipherText) || SK <- FailPKeys ]
+                                     {ok, FCS} = tpke_pubkey:verify_ciphertext(FailPubKey, FailCipherText),
+                                     [ tpke_privkey:decrypt_share(SK, FCS) || SK <- FailPKeys ]
                              end,
 
                 Shares = case Fail of
@@ -51,10 +58,8 @@ prop_decrypt_shares() ->
                                  dealer:random_n(K-1, GoodShares) ++ dealer:random_n(1, FailShares)
                          end,
 
-                VerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, CipherText),
-                FailVerifiedCipherText = tpke_pubkey:verify_ciphertext(PubKey, FailCipherText),
-                VerifiedShares = lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, Share, CipherText) || Share <- Shares]),
-                VerifiedCombinedShares = tpke_pubkey:combine_shares(PubKey, CipherText, Shares),
+                VerifiedShares = lists:all(fun(X) -> X end, [tpke_pubkey:verify_share(PubKey, Share, VerifiedCipherText) || Share <- Shares]),
+                VerifiedCombinedShares = tpke_pubkey:combine_shares(PubKey, VerifiedCipherText, Shares),
 
                 ?WHENFAIL(begin
                               io:format("K ~p~n", [K]),
@@ -62,7 +67,6 @@ prop_decrypt_shares() ->
                               io:format("FailShares ~p~n", [FailShares])
                           end,
                           conjunction([
-                                       {verify_ciphertext, VerifiedCipherText},
                                        {dont_verify_wrong_ciphertext, eqc:equals((Fail /= wrong_key), FailVerifiedCipherText)},
                                        {verify_share, eqc:equals((Fail == none orelse Fail == duplicate_shares),  VerifiedShares)},
                                        {verify_combine_shares, eqc:equals((Fail == none),  Message == VerifiedCombinedShares)}
