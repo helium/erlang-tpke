@@ -40,11 +40,20 @@ threshold_decrypt_test(Config) ->
                           ?assertError(inconsistent_ciphertext, tpke_pubkey:combine_shares(OtherPubKey, VerifiedCipherText, dealer:random_n(K, Shares))),
                           ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, VerifiedCipherText, dealer:random_n(K, Shares))),
                           %% test serialization/deserialization
-                          SerializedCipherText = tpke_pubkey:ciphertext_to_binary(VerifiedCipherText),
+                          SerializedCipherText = tpke_pubkey:ciphertext_to_binary(CipherText),
                           %% we don't encode validation status
                           ?assertEqual(SerializedCipherText, tpke_pubkey:ciphertext_to_binary(CipherText)),
                           DeserializedCipherText = tpke_pubkey:binary_to_ciphertext(SerializedCipherText, PubKey),
                           ?assertError(inconsistent_ciphertext, tpke_pubkey:binary_to_ciphertext(SerializedCipherText, OtherPubKey)),
                           ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, DeserializedCipherText, dealer:random_n(K, Shares))),
+
+                          %% test serialization/deserialization
+                          VerifiedSerializedCipherText = tpke_pubkey:ciphertext_to_binary(VerifiedCipherText),
+                          %% we don't encode validation status
+                          ?assertEqual(VerifiedSerializedCipherText, tpke_pubkey:ciphertext_to_binary(VerifiedCipherText)),
+                          VerifiedDeserializedCipherText = tpke_pubkey:binary_to_ciphertext(SerializedCipherText, PubKey),
+                          ?assertError(inconsistent_ciphertext, tpke_pubkey:binary_to_ciphertext(VerifiedSerializedCipherText, OtherPubKey)),
+                          ?assertEqual(Message, tpke_pubkey:combine_shares(PubKey, VerifiedDeserializedCipherText, dealer:random_n(K, Shares))),
+
                           ok
                   end, Dealers).
