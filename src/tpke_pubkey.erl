@@ -268,7 +268,9 @@ deserialize(#pubkey_serialized{players=Players, k=K, curve=Curve, g1=G1, g2=G2, 
 check_ciphertext(_PubKey, #ciphertext{verified=false}) ->
     erlang:error(unverified_ciphertext);
 check_ciphertext(#pubkey{g1=KG1}, #ciphertext{verified=true, g1=CG1, u=U, v=V, w=W}) ->
-    case erlang_pbc:element_cmp(CG1, KG1) of
+    %% check if they're the same reference or the same value
+    %% reference comparisons are cheaper so do those first
+    case CG1 == KG1 orelse erlang_pbc:element_cmp(CG1, KG1) of
         true ->
             {U, V, W};
         false ->
