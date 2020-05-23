@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  ci:
+    runs-on: ubuntu-latest
+    container: madninja/builder-erlang:1
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/cache@v1
+      name: Restore cache
+      with:
+        path: ~/.cache/rebar3
+        key: ${{ runner.os }}-rebar3-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.lock')) }}
+
+    - name: Compile
+      run: rebar3 compile
+
+    - name: Dialyzer
+      run: rebar3 dialyzer
+
+    - name: Run tests
+      run: rebar3 do eunit, ct
+
+    - name: Generate Coverage
+      run: rebar3 do cover,covertool generate
+
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./_build/test/covertool/erlang_tpke.covertool.xml
+        fail_ci_if_error: true
